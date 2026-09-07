@@ -59,6 +59,4 @@ conference:
   rooms:
     - name: Room A
     - name: Room B
-  venues:
-    output: true
     - name: Room C
