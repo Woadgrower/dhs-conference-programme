@@ -1,0 +1,13 @@
+{
+  "category": "other",
+  "title": "Design Museum Collection Tour",
+  "subtitle": "Optional guided tour",
+  "description": "Guided tour of the Design Museum's permanent collection with curatorial staff",
+  "day": 4,
+  "date": "2026-09-06",
+  "start_time": "10:00",
+  "end_time": "12:00",
+  "location": "Design Museum",
+  "room": "Gallery 1",
+  "visibility": "public"
+}
