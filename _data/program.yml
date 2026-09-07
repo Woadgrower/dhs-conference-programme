@@ -44,7 +44,7 @@ days:
             time_end: "17:00"
       - name: Room B
         talks:
-          - name: "Publishing Workshop #2: Explorations"
+          - name: "Publishing Workshop 2: Explorations"
             time_start: "14:00"
             time_end: "15:30"
           - name: Networking Event
