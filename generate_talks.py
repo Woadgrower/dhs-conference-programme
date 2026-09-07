@@ -54,6 +54,23 @@ def generate_talk_markdown(event):
     start_time = event.get('start_time', '')
     end_time = event.get('end_time', '')
     
+    # Parse times into hour/minute format
+    if start_time:
+        start_hour, start_minute = start_time.split(':')
+        start_hour = int(start_hour)
+        start_minute = int(start_minute)
+    else:
+        start_hour = 9
+        start_minute = 0
+    
+    if end_time:
+        end_hour, end_minute = end_time.split(':')
+        end_hour = int(end_hour)
+        end_minute = int(end_minute)
+    else:
+        end_hour = start_hour + 1
+        end_minute = start_minute
+    
     # Map room
     room_key = event.get('room')
     room = ROOM_MAP.get(room_key, "Room A")
@@ -68,8 +85,10 @@ name: "{name}"
 description: >
   {description}
 date: {date}
-time: {start_time}
-end_time: {end_time}
+hour: {start_hour}
+minute: {start_minute}
+end_hour: {end_hour}
+end_minute: {end_minute}
 room: {room}
 tags:
 """
