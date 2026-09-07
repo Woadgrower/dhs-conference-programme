@@ -35,3 +35,18 @@ defaults:
 conference:
   lang: en
   tz: "+01:00"
+  days:
+    - name: Day Zero
+      date: 2026-09-02
+    - name: Day One
+      date: 2026-09-03
+    - name: Day Two
+      date: 2026-09-04
+    - name: Day Three
+      date: 2026-09-05
+    - name: Post-conference Tours
+      date: 2026-09-06
+  rooms:
+    - name: Room A
+    - name: Room B
+    - name: Room C
