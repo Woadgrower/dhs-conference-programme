@@ -3,8 +3,10 @@ name: "Politics of Design and Craft"
 description: >
   Panel 3A. Exploring the political dimensions of design and craft practices
 date: 2026-09-03
-time: 11:00
-end_time: 12:30
+hour: 11
+minute: 0
+end_hour: 12
+end_minute: 30
 room: Room A
 tags:
   - academic

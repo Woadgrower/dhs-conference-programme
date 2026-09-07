@@ -3,8 +3,10 @@ name: "Welcome Address"
 description: >
   Opening of the conference. Welcome address by the DHS Chair and conference organisers
 date: 2026-09-03
-time: 09:00
-end_time: 09:30
+hour: 9
+minute: 0
+end_hour: 9
+end_minute: 30
 room: Room A
 tags:
   - welcome
