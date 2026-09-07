@@ -1,20 +1,31 @@
 ---
-name: Politics of Design and Craft
+name: "Politics of Design and Craft"
 description: >
-  A test conference session based on the 2026 Design History Society programme.
+  Panel 3A. Exploring the political dimensions of design and craft practices
 date: 2026-09-03
 time: 11:00
 end_time: 12:30
 room: Room A
-speakers:
-  - Test Speaker
 tags:
-  - craft
-  - politics
-  - design
+  - academic
+  - panel
 ---
 
-This is a test event for the DHS 2027 interactive conference programme.
+Panel 3A
 
-The event demonstrates how a scheduled session can contain a title, description,
-speaker information and searchable subject tags.
+## Panels
+
+### Craft as Political Statement
+
+Chair: Dr. Sarah Johnson
+
+#### Papers
+
+- **The Politics of Making: Craftivism in the 21st Century**
+  - Emma Wilson, Royal College of Art
+
+- **Designing Dissent: Visual Culture of Protest Movements**
+  - Marcus Chen, Parsons School of Design
+
+- **Crafting Identity: Material Culture and National Narratives**
+  - Amara Okafor, University of Lagos
