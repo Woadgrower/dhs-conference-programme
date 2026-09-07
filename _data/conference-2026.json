@@ -5,7 +5,7 @@
   "location": "London",
   "venue": "Design Museum",
   "start_date": "2026-09-03",
-  "end_date": "2026-09-05",
+  "end_date": "2026-09-06",
   "days": [
     {
       "number": 0,
@@ -26,6 +26,11 @@
       "number": 3,
       "date": "2026-09-05",
       "label": "Day 3"
+    },
+    {
+      "number": 4,
+      "date": "2026-09-06",
+      "label": "Post-conference Tours"
     }
   ]
 }
