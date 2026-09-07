@@ -1,0 +1,42 @@
+{
+  "category": "academic",
+  "title": "Politics of Design and Craft",
+  "subtitle": "Panel 3A",
+  "description": "Exploring the political dimensions of design and craft practices",
+  "day": 1,
+  "date": "2026-09-03",
+  "start_time": "11:00",
+  "end_time": "12:30",
+  "location": "Design Museum",
+  "room": "Lecture Theatre",
+  "visibility": "public",
+  "panels": [
+    {
+      "panel_title": "Craft as Political Statement",
+      "chair": "Dr. Sarah Johnson",
+      "papers": [
+        {
+          "title": "The Politics of Making: Craftivism in the 21st Century",
+          "author": "Emma Wilson",
+          "affiliation": "Royal College of Art",
+          "keywords": ["craftivism", "political craft", "activism"],
+          "subject": "Contemporary Craft"
+        },
+        {
+          "title": "Designing Dissent: Visual Culture of Protest Movements",
+          "author": "Marcus Chen",
+          "affiliation": "Parsons School of Design",
+          "keywords": ["protest design", "visual culture", "activism"],
+          "subject": "Graphic Design"
+        },
+        {
+          "title": "Crafting Identity: Material Culture and National Narratives",
+          "author": "Amara Okafor",
+          "affiliation": "University of Lagos",
+          "keywords": ["material culture", "national identity", "craft"],
+          "subject": "Material Culture"
+        }
+      ]
+    }
+  ]
+}
