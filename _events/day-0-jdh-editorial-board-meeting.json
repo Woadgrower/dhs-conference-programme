@@ -1,0 +1,13 @@
+{
+  "category": "meeting",
+  "title": "JdH Editorial Board Meeting",
+  "subtitle": "Internal board meeting",
+  "description": "Closed meeting for Journal of Design History editorial board members",
+  "day": 0,
+  "date": "2026-09-02",
+  "start_time": "14:00",
+  "end_time": "16:00",
+  "location": "Design Museum",
+  "room": "Boardroom",
+  "visibility": "editors"
+}
