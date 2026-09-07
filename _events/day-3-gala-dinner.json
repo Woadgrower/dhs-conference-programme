@@ -1,0 +1,13 @@
+{
+  "category": "social",
+  "title": "Gala Dinner",
+  "subtitle": "Conference dinner",
+  "description": "Annual conference gala dinner with keynote speaker",
+  "day": 3,
+  "date": "2026-09-05",
+  "start_time": "19:30",
+  "end_time": "23:00",
+  "location": "Design Museum",
+  "room": "Main Hall",
+  "visibility": "public"
+}
