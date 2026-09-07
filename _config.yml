@@ -1,0 +1,11 @@
+title: DHS 2027
+description: Design History Society Annual Conference
+
+remote_theme: "DigitaleGesellschaft/jekyll-theme-conference@v4.0.2"
+
+plugins:
+  - jekyll-include-cache
+
+conference:
+  lang: en
+  tz: "+01:00"
