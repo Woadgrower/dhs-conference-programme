@@ -5,7 +5,6 @@ remote_theme: "DigitaleGesellschaft/jekyll-theme-conference@v4.0.2"
 
 plugins:
   - jekyll-include-cache
-
 collections:
   talks:
     output: true
@@ -13,6 +12,8 @@ collections:
   speakers:
     output: true
   rooms:
+    output: true
+  venues:
     output: true
 
 defaults:
@@ -31,6 +32,11 @@ defaults:
       type: rooms
     values:
       layout: room
+  - scope:
+      path: ""
+      type: venues
+    values:
+      layout: venue
 
 conference:
   lang: en
