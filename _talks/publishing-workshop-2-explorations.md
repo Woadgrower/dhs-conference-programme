@@ -1,5 +1,5 @@
 ---
-name: "Publishing Workshop #2: Explorations"
+name: "Publishing Workshop 2: Explorations"
 description: >
   Getting published in design history journals. Practical workshop on preparing and submitting articles to design history journals
 speakers:
