@@ -2,5 +2,7 @@
   "number": 4,
   "date": "2026-09-06",
   "label": "Post-conference Tours",
-  "events": []
+  "events": [
+    "day-4-museum-tour"
+  ]
 }
