@@ -1,0 +1,32 @@
+days:
+  - name: Day Zero
+    abbr: D0
+    date: 2027-09-01
+    rooms:
+      - name: Main Hall
+        talks:
+          - name: Conference Welcome
+            time_start: "18:00"
+            time_end: "19:00"
+
+  - name: Day One
+    abbr: D1
+    date: 2027-09-02
+    rooms:
+      - name: Room A
+        talks:
+          - name: Politics of Design and Craft
+            time_start: "09:00"
+            time_end: "10:30"
+
+      - name: Room B
+        talks:
+          - name: Design History Society AGM
+            time_start: "09:00"
+            time_end: "10:30"
+
+      - name: Room C
+        talks:
+          - name: Student Workshop
+            time_start: "09:00"
+            time_end: "10:30"
