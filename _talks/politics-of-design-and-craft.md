@@ -15,9 +15,13 @@ tags:
 
 Panel 3A
 
+## Panels
+
+### Craft as Political Statement
+
 Chair: Dr. Sarah Johnson
 
-## Papers
+#### Papers
 
 - **The Politics of Making: Craftivism in the 21st Century**
   - Emma Wilson, Royal College of Art
