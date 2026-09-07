@@ -1,0 +1,31 @@
+{
+  "year": 2026,
+  "title": "DHS Annual Conference 2026",
+  "theme": "Design and Time",
+  "location": "London",
+  "venue": "Design Museum",
+  "start_date": "2026-09-03",
+  "end_date": "2026-09-05",
+  "days": [
+    {
+      "number": 0,
+      "date": "2026-09-02",
+      "label": "Pre-conference"
+    },
+    {
+      "number": 1,
+      "date": "2026-09-03",
+      "label": "Day 1"
+    },
+    {
+      "number": 2,
+      "date": "2026-09-04",
+      "label": "Day 2"
+    },
+    {
+      "number": 3,
+      "date": "2026-09-05",
+      "label": "Day 3"
+    }
+  ]
+}
