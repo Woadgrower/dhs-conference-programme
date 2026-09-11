@@ -3618,12 +3618,13 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
 
 <style id="v795Styles">
 /* v79.5 — completed v79.4 testing fixes */
-.publicnavrow{position:relative;border-bottom:1px solid var(--public-line,#9b9b9b)!important;gap:8px!important}
-.publicnav{position:relative;z-index:1;margin-bottom:-1px!important;border:1px solid transparent!important;border-bottom:1px solid var(--public-line,#9b9b9b)!important;border-radius:9px 9px 0 0!important}
-.publicnav.active{background:var(--public-bg,#fff)!important;border-color:var(--public-line,#9b9b9b)!important;border-bottom-color:var(--public-bg,#fff)!important;box-shadow:none!important}
-#publicProgrammePanel,#publicInfoPanel{border:1px solid var(--public-line,#9b9b9b);border-top:0;padding-top:1px}
+.publicnavrow{position:relative;border-bottom:1px solid var(--pub-card-border,#9b9b9b)!important;gap:8px!important}
+.publicnav{position:relative;z-index:1;margin-bottom:-1px!important;border:1px solid transparent!important;border-bottom:1px solid var(--pub-card-border,#9b9b9b)!important;border-radius:9px 9px 0 0!important}
+.publicnav.active{background:var(--pub-bg,#fff)!important;border-color:var(--pub-card-border,#9b9b9b)!important;border-bottom-color:var(--pub-bg,#fff)!important;box-shadow:none!important}
+#publicProgrammePanel,#publicInfoPanel{border:1px solid var(--pub-card-border,#9b9b9b);border-top:0;padding-top:1px;background:var(--pub-bg,#fff)}
 .membership-remove{font-size:10px!important;line-height:1.1!important;padding:3px 5px!important;font-weight:600!important;white-space:nowrap}
 .info-editor-card{scroll-margin-top:18px}.info-editor-card input,.info-editor-card textarea,.info-editor-card select{background:#fff!important;border:2px solid #666!important}.info-editor-card.v795-editing{outline:4px solid #1765a6!important;outline-offset:4px}.info-edit-btn,[data-info-add]{font-weight:800!important}
+.public-search-day{margin:22px 0 8px;padding-bottom:6px;border-bottom:2px solid currentColor;font-size:18px}.public-search-summary{margin:10px 0 18px;font-weight:700}
 </style>
 <script id="v795Script">
 (function(){
@@ -3720,6 +3721,22 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
   const baseApplyTheme=applyTheme;applyTheme=function(){baseApplyTheme();autoContrast()};
   const basePublicProgramme=renderPublicProgramme;renderPublicProgramme=function(){basePublicProgramme();autoContrast(document.getElementById('publicPreview')||document)};
   const basePublicInfo=renderPublicInfo;renderPublicInfo=function(){basePublicInfo();autoContrast(document.getElementById('publicPreview')||document)};
+
+  // Public search covers every conference day, not only the selected day.
+  const singleDayPublicProgramme=renderPublicProgramme;
+  renderPublicProgramme=function(){
+    const q=String(publicSearch&&publicSearch.value||'').trim();
+    if(!q){singleDayPublicProgramme();return}
+    const originalDay=previewDay,sections=[];
+    days.forEach((day,i)=>{
+      previewDay=i;singleDayPublicProgramme();
+      if(publicProgramme.querySelector('.public-event-row'))sections.push(`<section class="public-search-results"><h2 class="public-search-day">${esc(day.label||('Day '+i))} · ${esc(day.date||'')}</h2>${publicProgramme.innerHTML}</section>`);
+    });
+    previewDay=originalDay;
+    publicProgramme.innerHTML=sections.length?`<p class="public-search-summary">Results across all conference days</p>${sections.join('')}`:'<div class="public-event-card"><b>No programme results found.</b></div>';
+    publicProgramme.querySelectorAll('[data-favourite]').forEach(b=>b.onclick=()=>toggleFavourite(b.dataset.favourite));
+    saveFavourites();autoContrast(publicProgramme);
+  };
 
   // Make Conference Information editing direct and unmistakable.
   function focusInfoEditor(id){
