@@ -2368,7 +2368,7 @@ function updateThemeFromControls(){
 function restoreAssignments(){papers.forEach(p=>p.assigned=null);builtPanels.forEach(bp=>(bp.papers||[]).forEach(id=>{let p=papers.find(x=>x.id===id);if(p)p.assigned=bp.draftRef}))}
 function panelStart(day,rowid){let item=timelineForMainDay(+day).find(x=>x.row&&x.row.id===rowid);return item?item.start:99999}
 function csvSplit(line){let out=[],cur='',q=false;for(let i=0;i<line.length;i++){let c=line[i];if(c==='"'){if(q&&line[i+1]==='"'){cur+='"';i++}else q=!q}else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out}
-function importProgrammeRows(text){let lines=text.replace(/\r/g,'').split('\n').filter(x=>x.trim()),heads=csvSplit(lines.shift()).map(x=>x.trim().toLowerCase()),rows=lines.map(l=>{let v=csvSplit(l),o={};heads.forEach((h,i)=>o[h]=(v[i]||'').trim());return o});if(!heads.includes('panel')||!heads.includes('paper title'))throw new Error('CSV needs panel and paper title columns');let groups=new Map();rows.forEach(r=>{let key=r.panel||'Imported Panel';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(r)});builtPanels=[];placed={};panelNumbers={};let seq=1,nextPaperId=Math.max(...papers.map(p=>p.id))+1;groups.forEach((rows,panelName)=>{let draft='Draft Panel '+String(seq++).padStart(2,'0'),ids=[];rows.forEach(r=>{let p={id:nextPaperId++,title:r['paper title']||'Untitled paper',people:[r.speaker,r.institution].filter(Boolean).join(', '),speaker_tokens:r.speaker?[r.speaker]:[],email:r.email||r['speaker email']||'',abstract:'',assigned:draft};papers.push(p);ids.push(p.id)});let bp={id:'imported-'+Date.now()+'-'+seq,draftRef:draft,title:panelName||draft,papers:ids,speakers:rows.map(r=>r.speaker).filter(Boolean),chair:rows[0].chair||null,topicText:rows.map(r=>r['paper title']).join(' ').toLowerCase()};builtPanels.push(bp);let r=rows[0],di=r.day?Math.max(0,Math.min(days.length-1,parseInt(r.day,10))):null;if(di!==null&&r.room){let row=mainFrameworkForDay(di).filter(x=>x.kind==='panel').find(x=>!r.start||fmt(panelStart(di,x.id))===r.start)||mainFrameworkForDay(di).find(x=>x.kind==='panel');if(row)placed[`${di}|${row.id}|${r.room}`]=bp}});draftSeq=seq;restoreAssignments();renderPapers();renderBuildPapers();renderDays();renderBoard();renderTray();return rows.length}
+function importProgrammeRows(text){let lines=text.replace(/\r/g,'').split('\n').filter(x=>x.trim()),heads=csvSplit(lines.shift()).map(x=>x.trim().toLowerCase()),rows=lines.map(l=>{let v=csvSplit(l),o={};heads.forEach((h,i)=>o[h]=(v[i]||'').trim());return o});if(!heads.includes('panel')||!heads.includes('paper title'))throw new Error('CSV needs panel and paper title columns');let groups=new Map();rows.forEach(r=>{let key=r.panel||'Imported Panel';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(r)});builtPanels=[];placed={};panelNumbers={};let seq=1,nextPaperId=Math.max(...papers.map(p=>p.id))+1;groups.forEach((rows,panelName)=>{let draft='Draft Panel '+String(seq++).padStart(2,'0'),ids=[];rows.forEach(r=>{let p={id:nextPaperId++,title:r['paper title']||'Untitled paper',people:[r.speaker,r.institution].filter(Boolean).join(', '),speaker_tokens:r.speaker?[r.speaker]:[],email:r.email||r['speaker email']||'',abstract:r.abstract||'',shortSummary:r['short summary']||'',assigned:draft};papers.push(p);ids.push(p.id)});let bp={id:'imported-'+Date.now()+'-'+seq,draftRef:draft,title:panelName||draft,papers:ids,speakers:rows.map(r=>r.speaker).filter(Boolean),chair:rows[0].chair||null,topicText:rows.map(r=>r['paper title']).join(' ').toLowerCase()};builtPanels.push(bp);let r=rows[0],di=r.day?Math.max(0,Math.min(days.length-1,parseInt(r.day,10))):null;if(di!==null&&r.room){let row=mainFrameworkForDay(di).filter(x=>x.kind==='panel').find(x=>!r.start||fmt(panelStart(di,x.id))===r.start)||mainFrameworkForDay(di).find(x=>x.kind==='panel');if(row)placed[`${di}|${row.id}|${r.room}`]=bp}});draftSeq=seq;restoreAssignments();renderPapers();renderBuildPapers();renderDays();renderBoard();renderTray();return rows.length}
 function renderPreview(){slotpreview.innerHTML=days.map(d=>`<span class="slotchip">${d.label} · ${d.date}: ${d.type==='main'?'Conference · panel framework':d.type==='pre'?'Pre-conference · Events only':'Post-conference · tours/events only'}</span>`).join('')}
 generate.onclick=()=>{updateTimingSummary();renderPreview();renderDays();renderBoard()}
 
@@ -2867,6 +2867,7 @@ function conferenceSnapshot(){
     builtPanels,
     draftSeq,
     otherEvents,
+    papers,
     peopleIndex,
     conferenceInfo,
     venues,
@@ -2905,7 +2906,7 @@ importConference.onchange=async e=>{
     panelNumbers=data.panelNumbers||{};
     builtPanels=data.builtPanels||[];
     draftSeq=data.draftSeq||1;
-    otherEvents=data.otherEvents||otherEvents;peopleIndex=data.peopleIndex||peopleIndex;conferenceInfo=data.conferenceInfo||conferenceInfo;
+    otherEvents=data.otherEvents||otherEvents;if(Array.isArray(data.papers))papers.splice(0,papers.length,...data.papers);peopleIndex=data.peopleIndex||peopleIndex;conferenceInfo=data.conferenceInfo||conferenceInfo;
     venues=data.venues||venues;
     structuralOrder=data.structuralOrder||structuralOrder;
     conferenceConfig=data.conferenceConfig||conferenceConfig;theme=data.theme||theme;editingPanelId=null;selected.clear();selectionOrder=[];restoreAssignments();
@@ -2927,7 +2928,7 @@ try{
     panelNumbers=savedDemo.panelNumbers||panelNumbers;
     builtPanels=savedDemo.builtPanels||builtPanels;
     draftSeq=savedDemo.draftSeq||draftSeq;
-    otherEvents=savedDemo.otherEvents||otherEvents;peopleIndex=savedDemo.peopleIndex||peopleIndex;conferenceInfo=savedDemo.conferenceInfo||conferenceInfo;
+    otherEvents=savedDemo.otherEvents||otherEvents;if(Array.isArray(savedDemo.papers))papers.splice(0,papers.length,...savedDemo.papers);peopleIndex=savedDemo.peopleIndex||peopleIndex;conferenceInfo=savedDemo.conferenceInfo||conferenceInfo;
     venues=savedDemo.venues||venues;
     structuralOrder=savedDemo.structuralOrder||structuralOrder;
     conferenceConfig=savedDemo.conferenceConfig||conferenceConfig;theme=savedDemo.theme||theme;restoreAssignments();
@@ -2979,7 +2980,7 @@ addUploadedFont.onclick=async()=>{
 };
 document.querySelectorAll('[data-sandbox-view]').forEach(b=>b.onclick=()=>{sandboxView=b.dataset.sandboxView;renderDesignerLivePreview();applyTheme()});
 designerPreview.onclick=openPublicPreview;
-resetTheme.onclick=()=>{theme={font:'system',headingFont:'avenir',bodyFont:'system',uploadedFonts:[],bodySize:16,lineHeight:1.5,headingScale:1,primary:'#252525',background:'#f5f5f3',accent:'#d81b60',programmeSecond:'#ef5350',infoPrimary:'#6f9f8c',infoSecondary:'#8db7c9',layout:'balanced',titleTreatment:'plain',headerBg:'#ffffff',headerText:'#252525',navBg:'#ffffff',cardBg:'#ffffff',cardText:'#252525',cardBorder:'#b9b9b9',buttonText:'#ffffff',eventColors:{panel:'#e8dce9',workshop:'#dce9e4',keynote:'#eadfce',meeting:'#dde4ee',social:'#eedde3',conference:'#e5e1d5',roundtable:'#d9e7ec',exhibition:'#e7e0ef',special:'#f0e3d5',other:'#e4e4e4',break:'#eef0e8',lunch:'#e8eee1'},infoColors:{transport:'#dfeaf1',venues:'#e6def0',accessibility:'#dcebe2',wifi:'#eee5d4',food:'#f0dedb',registration:'#eaddea',contacts:'#dce5ee',organisers:'#e9dfd7',sustainability:'#dfe9d8',venue:'#ebe6d6',local:'#e2e8ef'},radius:'6px',width:'1180px',card:'border',density:'standard',heroData:null,heroName:'',heroAlt:'',heroDecorative:false,heroMode:'image',heroHeight:320,graphics:[]};regenerateAutomaticPalettes();theme.v73PaletteInitialized=true;syncThemeControls()};downloadCsvTemplate.onclick=e=>{e.preventDefault();let sample='panel,paper title,abstract,keywords,speaker title,speaker,speaker email,institution,chair,chair email,day,start,end,venue,room,event type\nDraft Panel A,Example paper title,Full abstract text,keyword 1; keyword 2,Dr,Speaker Name,speaker@example.org,Institution,Chair Name,chair@example.org,1,08:00,09:30,Main Conference Venue,A100,Panel';let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([sample],{type:'text/csv'}));a.download='conference-maker-programme-template.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)};importProgrammeCsv.onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let n=importProgrammeRows(await f.text());csvImportNote.textContent=`Imported ${n} paper row${n===1?'':'s'}. Review the programme before publishing.`;usePapers.checked=false;useArrange.checked=true;syncConferenceConfig()}catch(err){csvImportNote.textContent='Import failed: '+err.message}e.target.value=''};setupTimingControl(panelDurationChoice,panelDurationCustomWrap,panelDurationCustom,'panelDuration',90);
+resetTheme.onclick=()=>{theme={font:'system',headingFont:'avenir',bodyFont:'system',uploadedFonts:[],bodySize:16,lineHeight:1.5,headingScale:1,primary:'#252525',background:'#f5f5f3',accent:'#d81b60',programmeSecond:'#ef5350',infoPrimary:'#6f9f8c',infoSecondary:'#8db7c9',layout:'balanced',titleTreatment:'plain',headerBg:'#ffffff',headerText:'#252525',navBg:'#ffffff',cardBg:'#ffffff',cardText:'#252525',cardBorder:'#b9b9b9',buttonText:'#ffffff',eventColors:{panel:'#e8dce9',workshop:'#dce9e4',keynote:'#eadfce',meeting:'#dde4ee',social:'#eedde3',conference:'#e5e1d5',roundtable:'#d9e7ec',exhibition:'#e7e0ef',special:'#f0e3d5',other:'#e4e4e4',break:'#eef0e8',lunch:'#e8eee1'},infoColors:{transport:'#dfeaf1',venues:'#e6def0',accessibility:'#dcebe2',wifi:'#eee5d4',food:'#f0dedb',registration:'#eaddea',contacts:'#dce5ee',organisers:'#e9dfd7',sustainability:'#dfe9d8',venue:'#ebe6d6',local:'#e2e8ef'},radius:'6px',width:'1180px',card:'border',density:'standard',heroData:null,heroName:'',heroAlt:'',heroDecorative:false,heroMode:'image',heroHeight:320,graphics:[]};regenerateAutomaticPalettes();theme.v73PaletteInitialized=true;syncThemeControls()};downloadCsvTemplate.onclick=e=>{e.preventDefault();let sample='panel,paper title,abstract,short summary,keywords,speaker title,speaker,speaker email,institution,chair,chair email,day,start,end,venue,room,event type\nDraft Panel A,Example paper title,Full abstract text,,keyword 1; keyword 2,Dr,Speaker Name,speaker@example.org,Institution,Chair Name,chair@example.org,1,08:00,09:30,Main Conference Venue,A100,Panel';let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([sample],{type:'text/csv'}));a.download='conference-maker-programme-template.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)};importProgrammeCsv.onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let n=importProgrammeRows(await f.text());csvImportNote.textContent=`Imported ${n} paper row${n===1?'':'s'}. Review the programme before publishing.`;usePapers.checked=false;useArrange.checked=true;syncConferenceConfig()}catch(err){csvImportNote.textContent='Import failed: '+err.message}e.target.value=''};setupTimingControl(panelDurationChoice,panelDurationCustomWrap,panelDurationCustom,'panelDuration',90);
 setupTimingControl(paperDurationChoice,paperDurationCustomWrap,paperDurationCustom,'paperDuration',20);
 setupTimingControl(breakDurationChoice,breakDurationCustomWrap,breakDurationCustom,'breakDuration',30);
 setupTimingControl(lunchDurationChoice,lunchDurationCustomWrap,lunchDurationCustom,'lunchDuration',60);
@@ -3624,7 +3625,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
 #publicProgrammePanel,#publicInfoPanel{border:1px solid var(--pub-card-border,#9b9b9b);border-top:0;padding-top:1px;background:var(--pub-bg,#fff)}
 .membership-remove{font-size:10px!important;line-height:1.1!important;padding:3px 5px!important;font-weight:600!important;white-space:nowrap}
 .info-editor-card{scroll-margin-top:18px}.info-editor-card input,.info-editor-card textarea,.info-editor-card select{background:#fff!important;border:2px solid #666!important}.info-editor-card.v795-editing{outline:4px solid #1765a6!important;outline-offset:4px}.info-edit-btn,[data-info-add]{font-weight:800!important}
-.public-search-day{margin:22px 0 8px;padding-bottom:6px;border-bottom:2px solid currentColor;font-size:18px}.public-search-summary{margin:10px 0 18px;font-weight:700}
+.public-search-day{margin:22px 0 8px;padding-bottom:6px;border-bottom:2px solid currentColor;font-size:18px}.public-search-summary{margin:10px 0 18px;font-weight:700}.paper-short-summary{margin:5px 0!important;line-height:1.45}.full-abstract-link{display:inline-block;margin-top:5px;color:inherit;font-weight:750;text-decoration:underline;text-underline-offset:3px}.paper-abstract-dialog{width:min(760px,calc(100vw - 32px));max-height:85vh;border:0;border-radius:10px;padding:0;box-shadow:0 18px 60px #0006}.paper-abstract-dialog::backdrop{background:#0008}.paper-abstract-inner{padding:22px}.paper-abstract-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-bottom:1px solid #bbb;padding-bottom:12px}.paper-abstract-head h2{margin:0}.paper-abstract-close{border:1px solid #777;background:#fff;border-radius:6px;padding:6px 9px;font-weight:700}.paper-abstract-body{white-space:pre-wrap;line-height:1.6;margin-top:18px}
 .designer-top-actions{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding:14px;margin:14px 0 18px;background:#fff;border:1px solid #aaa;border-radius:10px}.designer-preview-actions{display:flex;gap:8px;flex-wrap:wrap}.designer-reset-action{display:flex;flex-direction:column;align-items:flex-end;gap:4px;padding-left:18px;border-left:1px solid #ccc}.designer-reset-action span{font-size:11px;color:#666;max-width:260px;text-align:right}.designer-reset-btn{border:0;background:transparent;color:#555;text-decoration:underline;text-underline-offset:3px;font-size:12px;padding:5px 2px}.designer-reset-btn:hover{color:#111}.designer-reset-btn:focus-visible{outline:3px solid #1765a6;outline-offset:2px}@media(max-width:700px){.designer-top-actions{display:block}.designer-reset-action{align-items:flex-start;border-left:0;border-top:1px solid #ccc;padding:12px 0 0;margin-top:12px}.designer-reset-action span{text-align:left}}
 </style>
 <script id="v795Script">
@@ -3723,6 +3724,26 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
   const basePublicProgramme=renderPublicProgramme;renderPublicProgramme=function(){basePublicProgramme();autoContrast(document.getElementById('publicPreview')||document)};
   const basePublicInfo=renderPublicInfo;renderPublicInfo=function(){basePublicInfo();autoContrast(document.getElementById('publicPreview')||document)};
 
+  function generatedPaperSummary(p){
+    if(String(p.shortSummary||'').trim())return String(p.shortSummary).trim().split(/\s+/).slice(0,50).join(' ');
+    const words=String(p.abstract||'').replace(/\s+/g,' ').trim().split(' ').filter(Boolean),summary=words.slice(0,50).join(' ')+(words.length>50?'…':'');
+    p.shortSummary=summary;return summary;
+  }
+  function ensurePaperSummaries(){papers.forEach(p=>generatedPaperSummary(p))}
+  function ensureAbstractDialog(){
+    let d=document.getElementById('paperAbstractDialog');if(d)return d;
+    d=document.createElement('dialog');d.id='paperAbstractDialog';d.className='paper-abstract-dialog';d.innerHTML='<div class="paper-abstract-inner"><div class="paper-abstract-head"><div><div class="event-type">FULL ABSTRACT</div><h2 id="paperAbstractTitle"></h2><p id="paperAbstractPeople" class="small"></p></div><button class="paper-abstract-close" type="button">Close</button></div><div id="paperAbstractBody" class="paper-abstract-body"></div></div>';
+    document.body.appendChild(d);d.querySelector('.paper-abstract-close').onclick=()=>d.close();d.onclick=e=>{if(e.target===d)d.close()};return d;
+  }
+  function decoratePublicPapers(){
+    ensurePaperSummaries();
+    document.querySelectorAll('#publicProgramme .panelpublic').forEach(card=>{
+      const title=card.querySelector(':scope > b')?.textContent.trim(),panel=builtPanels.find(p=>(p.title===p.draftRef?'Title to be confirmed':p.title)===title);if(!panel)return;
+      const records=panelPaperRecords(panel);
+      card.querySelectorAll('.public-paper').forEach((el,i)=>{const p=records[i];if(!p||el.querySelector('.paper-short-summary'))return;const summary=generatedPaperSummary(p),people=el.querySelector('span');if(summary){const para=document.createElement('p');para.className='paper-short-summary';para.textContent=summary;(people||el.lastChild).before(para)}if(p.abstract){const a=document.createElement('a');a.href='#full-abstract-'+p.id;a.className='full-abstract-link';a.textContent='Read full abstract';a.onclick=e=>{e.preventDefault();const d=ensureAbstractDialog();d.querySelector('#paperAbstractTitle').textContent=p.title||'Full abstract';d.querySelector('#paperAbstractPeople').textContent=p.people||'';d.querySelector('#paperAbstractBody').textContent=p.abstract;d.showModal()};el.appendChild(a)}});
+    });
+  }
+
   // Public search covers every conference day, not only the selected day.
   const singleDayPublicProgramme=renderPublicProgramme;
   renderPublicProgramme=function(){
@@ -3738,6 +3759,8 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
     publicProgramme.querySelectorAll('[data-favourite]').forEach(b=>b.onclick=()=>toggleFavourite(b.dataset.favourite));
     saveFavourites();autoContrast(publicProgramme);
   };
+  const allDaysPublicProgramme=renderPublicProgramme;
+  renderPublicProgramme=function(){allDaysPublicProgramme();decoratePublicPapers()};
 
   // Make Conference Information editing direct and unmistakable.
   function focusInfoEditor(id){
@@ -3754,7 +3777,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
     document.querySelectorAll('#infoCatalogue [data-info-edit]').forEach(b=>{const id=b.dataset.infoEdit;b.onclick=()=>focusInfoEditor(id)});
   };
 
-  removeDefaultUnnamedPerson();applyAutomaticMemberships();bindSetupPeople();renderPeople();applyTheme();
+  ensurePaperSummaries();removeDefaultUnnamedPerson();applyAutomaticMemberships();bindSetupPeople();renderPeople();applyTheme();
   renderConferenceInformation();
 })();
 </script>
