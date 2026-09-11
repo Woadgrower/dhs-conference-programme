@@ -3623,6 +3623,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
 .publicnav{position:relative;z-index:1;margin-bottom:-1px!important;border:1px solid transparent!important;border-bottom:1px solid var(--public-line,#9b9b9b)!important;border-radius:9px 9px 0 0!important}
 .publicnav.active{background:var(--public-bg,#fff)!important;border-color:var(--public-line,#9b9b9b)!important;border-bottom-color:var(--public-bg,#fff)!important;box-shadow:none!important}
 #publicProgrammePanel,#publicInfoPanel{border:1px solid var(--public-line,#9b9b9b);border-top:0;padding-top:1px}
+.membership-remove{font-size:10px!important;line-height:1.1!important;padding:3px 5px!important;font-weight:600!important;white-space:nowrap}
 </style>
 <script id="v795Script">
 (function(){
@@ -3673,7 +3674,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
       const group=groups[index],members=sortedPeople(kind);if(!group)return;
       [...group.querySelectorAll('.person-read-card')].forEach((card,i)=>{
         const p=members[i],actions=card.querySelector('.person-card-actions');if(!p||!actions||card.classList.contains('editing'))return;
-        const b=document.createElement('button');b.type='button';b.className='tiny-edit';b.textContent=kind==='committee'?'Remove from committee':'Remove from Chairs';
+        const b=document.createElement('button');b.type='button';b.className='tiny-edit membership-remove';b.textContent=kind==='committee'?'Remove from committee':'Remove from Chairs';
         b.onclick=()=>{if(kind==='committee'){p.committeeOptOut=true;p.academicCommittee=false}else{p.chairOptOut=true;p.programmeRoles=(p.programmeRoles||[]).filter(x=>x!=='Panel Chair')}renderPeople()};actions.appendChild(b);
       });
     });
