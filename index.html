@@ -2030,6 +2030,7 @@ function keywordChips(p){let ks=paperKeywords(p);return ks.length?`<div class="k
 
 function renderPapers(){let q=search.value.toLowerCase();let a=papers.filter(p=>(state==='all'||(state==='still'&&!p.assigned)||(state==='placed'&&p.assigned))&&(!q||[p.title,p.people].join(' ').toLowerCase().includes(q)));paperlist.innerHTML=a.map(p=>`<div class="paper"><div><b>${esc(p.title)}</b><div class="meta">${esc(p.people)}</div><span class="status ${p.assigned?'placed':'unplaced'}">${p.assigned?'Already in panel · '+esc(p.assigned):'Still to place'}</span></div><button class="selectbtn ${selected.has(p.id)?'on':''}" data-select="${p.id}">${selected.has(p.id)?'✓ Selected':'+ Select for panel'}</button></div>`).join('')||'<p>No papers match.</p>';document.querySelectorAll('[data-select]').forEach(b=>b.onclick=()=>{let id=+b.dataset.select;togglePaper(id);renderPapers();renderSelection();renderBuildPapers();if(typeof renderSuggestions==='function')renderSuggestions()});counts()}
 function togglePaper(id){
+  selectedPapersInOrder();
   if(selected.has(id)){selected.delete(id);selectionOrder=selectionOrder.filter(x=>x!==id);panelLimitMsg.style.display='none';return}
   if(selected.size>=3){panelLimitMsg.style.display='block';panelLimitMsg.scrollIntoView({behavior:'smooth',block:'nearest'});return}
   selected.add(id);selectionOrder.push(id);panelLimitMsg.style.display=selected.size>=3?'block':'none'
@@ -2037,6 +2038,8 @@ function togglePaper(id){
 function selectedPapersInOrder(){
   let ids=selectionOrder.filter(id=>selected.has(id));
   selected.forEach(id=>{if(!ids.includes(id))ids.push(id)});
+  ids=ids.filter(id=>papers.some(p=>p.id===id));
+  selected=new Set(ids);
   selectionOrder=ids;
   return ids.map(id=>papers.find(p=>p.id===id)).filter(Boolean)
 }
@@ -2065,15 +2068,14 @@ function renderBuildPapers(){
  let q=buildsearch.value.toLowerCase();
  let editing=builtPanels.find(x=>x.id===editingPanelId);let editableIds=new Set(editing?.papers||[]);let a=papers.filter(p=>(!p.assigned||editableIds.has(p.id))&&(!q||[p.title,p.people,(p.abstract||''),paperKeywords(p).join(' ')].join(' ').toLowerCase().includes(q)));
  let ranked=a.map(p=>({p,...matchInfo(p)}));ranked.sort((A,B)=>{if(selected.has(A.p.id)!==selected.has(B.p.id))return selected.has(A.p.id)?-1:1;if(B.score!==A.score)return B.score-A.score;return A.p.title.localeCompare(B.p.title)});
- let panelFull=selected.size>=3;let suggested=!panelFull&&selected.size?ranked.filter(x=>!selected.has(x.p.id)&&x.score>0):[];let other=ranked.filter(x=>!suggested.includes(x));if(typeof buildSuggestNote!=='undefined')buildSuggestNote.textContent=panelFull?'This panel already has 3 papers. Remove one from the panel on the left to consider alternatives.':'Search accepted papers or use the suggested matches below.';
+ let panelFull=selectedPapersInOrder().length>=3;let suggested=!panelFull&&selected.size?ranked.filter(x=>!selected.has(x.p.id)&&x.score>0):[];let other=ranked.filter(x=>!suggested.includes(x));if(typeof buildSuggestNote!=='undefined')buildSuggestNote.textContent=panelFull?'This panel already has 3 papers. Remove one from the panel on the left to consider alternatives.':'Search accepted papers or use the suggested matches below.';
  function card(x,sug){let p=x.p;return `<div class="paper ${sug?'suggested-paper':''}"><div>${sug?`<div class="matchhead">${x.score>=3?'Strong match':x.score===2?'Good match':'Possible match'}</div>`:''}<b>${esc(p.title)}</b><div class="meta">${esc(p.people)}</div>${sug?`<div class="small">Shared keywords: <b>${x.shared.map(esc).join(' · ')}</b></div>`:''}${keywordChips(p)}</div><button class="selectbtn ${selected.has(p.id)?'on':''}" data-badd="${p.id}" ${panelFull&&!selected.has(p.id)?'disabled':''}>${selected.has(p.id)?'✓ In panel':'+ Add'}</button></div>`}
  let parts=[];if(suggested.length){parts.push('<div class="matchbox"><b>Suggested matches</b><br><span class="small">Best keyword matches are shown first. Suggestions update whenever you add or remove a paper.</span></div>');parts.push(suggested.slice(0,18).map(x=>card(x,true)).join(''));parts.push('<div class="paperdivider">All other accepted papers</div>')}parts.push(other.slice(0,80).map(x=>card(x,false)).join(''));buildpapers.innerHTML=parts.join('')||'<p>No papers match.</p>';
  document.querySelectorAll('[data-badd]').forEach(b=>b.onclick=()=>{let id=+b.dataset.badd;togglePaper(id);renderBuildPapers();renderSelection();renderPapers()})
 }
 function renderSuggestions(){
-  let full=selected.size>=3;
-  suggestQuery.disabled=full;runSuggest.disabled=full;
-  if(full){suggestExplain.textContent='';suggestions.innerHTML='<div class="matchbox"><b>This Draft Panel already has 3 papers.</b><br><span class="small">Suggestions are not needed unless you remove a paper.</span></div>';return}
+  let full=selectedPapersInOrder().length>=3;
+  suggestQuery.disabled=false;runSuggest.disabled=false;
   let q=(suggestQuery.value||'').trim().toLowerCase();
   if(!q){
     suggestions.innerHTML='<p class="small">Enter a topic to see suggestions.</p>';
@@ -2082,7 +2084,6 @@ function renderSuggestions(){
   }
   let terms=q.split(/\s+/).filter(Boolean);
   let editing=builtPanels.find(x=>x.id===editingPanelId),editableIds=new Set(editing?.papers||[]);let ranked=papers.filter(p=>!p.assigned||editableIds.has(p.id)).map(p=>{
-    let text=paperSearchText(p);
     let score=0;
     terms.forEach(t=>{
       if((p.title||'').toLowerCase().includes(t))score+=4;
@@ -2092,7 +2093,7 @@ function renderSuggestions(){
     return {p,score};
   }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,12);
   suggestExplain.textContent=ranked.length?`Showing ${ranked.length} strongest matches for “${q}”.`:`No strong matches found for “${q}”.`;
-  suggestions.innerHTML=ranked.map(({p,score})=>`<div class="selectedpaper"><div><b>${esc(p.title)}</b><br><span class="small">${esc(p.people)}</span><br><span class="small">Match strength: ${score>=6?'strong':score>=3?'moderate':'possible'}</span></div><button class="selectbtn ${selected.has(p.id)?'on':''}" data-suggestadd="${p.id}">${selected.has(p.id)?'✓ Added':'+ Add'}</button></div>`).join('');
+  suggestions.innerHTML=ranked.map(({p,score})=>`<div class="selectedpaper"><div><b>${esc(p.title)}</b><br><span class="small">${esc(p.people)}</span><br><span class="small">Match strength: ${score>=6?'strong':score>=3?'moderate':'possible'}</span></div><button class="selectbtn ${selected.has(p.id)?'on':''}" data-suggestadd="${p.id}" ${full&&!selected.has(p.id)?'disabled title="Remove a paper from the draft panel before adding another"':''}>${selected.has(p.id)?'✓ Added':'+ Add'}</button></div>`).join('');
   document.querySelectorAll('[data-suggestadd]').forEach(b=>b.onclick=()=>{
     let id=+b.dataset.suggestadd;
     togglePaper(id);
@@ -2103,6 +2104,7 @@ function renderSuggestions(){
   });
 }
 runSuggest.onclick=renderSuggestions;
+suggestQuery.oninput=renderSuggestions;
 suggestQuery.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();renderSuggestions()}};
 
 
@@ -3625,6 +3627,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
 #publicProgrammePanel,#publicInfoPanel{border:1px solid var(--pub-card-border,#9b9b9b);border-top:0;padding-top:1px;background:var(--pub-bg,#fff)}
 .membership-remove{font-size:10px!important;line-height:1.1!important;padding:3px 5px!important;font-weight:600!important;white-space:nowrap}
 .people-setup-link{border:0;background:transparent;color:inherit;font:inherit;font-weight:800;text-decoration:underline;text-underline-offset:2px;padding:0;cursor:pointer}
+.conference-team-subgroups{display:grid;gap:12px}.conference-team-subgroup h4{margin:0 0 6px;padding-bottom:4px;border-bottom:1px solid #ddd;font-size:12px;text-transform:uppercase;letter-spacing:.04em}.people-group-heading{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .info-editor-card{scroll-margin-top:18px}.info-editor-card input,.info-editor-card textarea,.info-editor-card select{background:#fff!important;border:2px solid #666!important}.info-editor-card.v795-editing{outline:4px solid #1765a6!important;outline-offset:4px}.info-edit-btn,[data-info-add]{font-weight:800!important}
 .public-search-day{margin:22px 0 8px;padding-bottom:6px;border-bottom:2px solid currentColor;font-size:18px}.public-search-summary{margin:10px 0 18px;font-weight:700}.paper-short-summary{margin:5px 0!important;line-height:1.45}.full-abstract-link{display:inline-block;margin-top:5px;color:inherit;font-weight:750;text-decoration:underline;text-underline-offset:3px}.paper-abstract-dialog{width:min(760px,calc(100vw - 32px));max-height:85vh;border:0;border-radius:10px;padding:0;box-shadow:0 18px 60px #0006}.paper-abstract-dialog::backdrop{background:#0008}.paper-abstract-inner{padding:22px}.paper-abstract-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-bottom:1px solid #bbb;padding-bottom:12px}.paper-abstract-head h2{margin:0}.paper-abstract-close{border:1px solid #777;background:#fff;border-radius:6px;padding:6px 9px;font-weight:700}.paper-abstract-body{white-space:pre-wrap;line-height:1.6;margin-top:18px}
 .designer-top-actions{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding:14px;margin:14px 0 18px;background:#fff;border:1px solid #aaa;border-radius:10px}.designer-preview-actions{display:flex;gap:8px;flex-wrap:wrap}.designer-reset-action{display:flex;flex-direction:column;align-items:flex-end;gap:4px;padding-left:18px;border-left:1px solid #ccc}.designer-reset-action span{font-size:11px;color:#666;max-width:260px;text-align:right}.designer-reset-btn{border:0;background:transparent;color:#555;text-decoration:underline;text-underline-offset:3px;font-size:12px;padding:5px 2px}.designer-reset-btn:hover{color:#111}.designer-reset-btn:focus-visible{outline:3px solid #1765a6;outline-offset:2px}@media(max-width:700px){.designer-top-actions{display:block}.designer-reset-action{align-items:flex-start;border-left:0;border-top:1px solid #ccc;padding:12px 0 0;margin-top:12px}.designer-reset-action span{text-align:left}}
@@ -3698,8 +3701,18 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
     if(empty)empty.innerHTML='Conference Team members can be entered on the <button type="button" class="people-setup-link" data-go-setup-team>Set Up Conference</button> page.';
     hostGroup.querySelector('[data-go-setup-team]')?.addEventListener('click',()=>show('setup'));
   }
+  function enhancePeopleGroups(){
+    const groups=[...document.querySelectorAll('#peopleGroups .people-group')],host=groups[0],student=groups[6];
+    const list=host&&host.querySelector(':scope > .people-card-list');
+    if(list){
+      const sections=[['Conference Convenors',p=>/conference convenor/i.test(p.function||'')],['Conference Coordinators',p=>/conference coordinator/i.test(p.function||'')],['Conference Administrator',p=>/conference administrator/i.test(p.function||'')],['Design & Web',p=>/graphic designer|web designer/i.test(p.function||'')],['Other Team Roles',p=>true]],used=new Set(),wrap=document.createElement('div');wrap.className='conference-team-subgroups';
+      sections.forEach(([label,test])=>{const members=peopleForGroup('host').filter(p=>!used.has(p.id)&&test(p)),cards=members.map(p=>list.querySelector(`[data-person-card="${CSS.escape(String(p.id))}"]`)).filter(Boolean);if(!cards.length)return;members.forEach(p=>used.add(p.id));const section=document.createElement('section');section.className='conference-team-subgroup';section.innerHTML=`<h4>${label}</h4><div class="people-card-list"></div>`;cards.forEach(card=>section.lastElementChild.appendChild(card));wrap.appendChild(section)});
+      list.replaceWith(wrap);
+    }
+    if(student&&!student.querySelector('[data-add-student-helper]')){const h=student.querySelector('h3'),row=document.createElement('div');row.className='people-group-heading';h.replaceWith(row);row.appendChild(h);const b=document.createElement('button');b.type='button';b.className='mini';b.dataset.addStudentHelper='';b.textContent='+ Add student helper';row.appendChild(b);b.onclick=()=>{if(typeof personForm==='undefined')return;personForm.style.display='block';personTitle.value='';personName.value='';personInstitution.value='';personFunction.value='Student Helper';personRole.value='';personEmail.value='';personName.focus()}}
+  }
   const baseRenderPeople=renderPeople;
-  renderPeople=function(){removeDefaultUnnamedPerson();applyAutomaticMemberships();baseRenderPeople();addConferenceTeamGuidance();addMembershipControls();if(typeof renderSetupTeamSlots==='function')renderSetupTeamSlots();bindSetupPeople()};
+  renderPeople=function(){removeDefaultUnnamedPerson();applyAutomaticMemberships();baseRenderPeople();addConferenceTeamGuidance();enhancePeopleGroups();addMembershipControls();if(typeof renderSetupTeamSlots==='function')renderSetupTeamSlots();bindSetupPeople()};
 
   // Preserve deliberate removal from the automatically populated committee.
   document.getElementById('people')?.addEventListener('click',e=>{
