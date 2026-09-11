@@ -3624,6 +3624,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
 .publicnav.active{background:var(--pub-bg,#fff)!important;border-color:var(--pub-card-border,#9b9b9b)!important;border-bottom-color:var(--pub-bg,#fff)!important;box-shadow:none!important}
 #publicProgrammePanel,#publicInfoPanel{border:1px solid var(--pub-card-border,#9b9b9b);border-top:0;padding-top:1px;background:var(--pub-bg,#fff)}
 .membership-remove{font-size:10px!important;line-height:1.1!important;padding:3px 5px!important;font-weight:600!important;white-space:nowrap}
+.people-setup-link{border:0;background:transparent;color:inherit;font:inherit;font-weight:800;text-decoration:underline;text-underline-offset:2px;padding:0;cursor:pointer}
 .info-editor-card{scroll-margin-top:18px}.info-editor-card input,.info-editor-card textarea,.info-editor-card select{background:#fff!important;border:2px solid #666!important}.info-editor-card.v795-editing{outline:4px solid #1765a6!important;outline-offset:4px}.info-edit-btn,[data-info-add]{font-weight:800!important}
 .public-search-day{margin:22px 0 8px;padding-bottom:6px;border-bottom:2px solid currentColor;font-size:18px}.public-search-summary{margin:10px 0 18px;font-weight:700}.paper-short-summary{margin:5px 0!important;line-height:1.45}.full-abstract-link{display:inline-block;margin-top:5px;color:inherit;font-weight:750;text-decoration:underline;text-underline-offset:3px}.paper-abstract-dialog{width:min(760px,calc(100vw - 32px));max-height:85vh;border:0;border-radius:10px;padding:0;box-shadow:0 18px 60px #0006}.paper-abstract-dialog::backdrop{background:#0008}.paper-abstract-inner{padding:22px}.paper-abstract-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-bottom:1px solid #bbb;padding-bottom:12px}.paper-abstract-head h2{margin:0}.paper-abstract-close{border:1px solid #777;background:#fff;border-radius:6px;padding:6px 9px;font-weight:700}.paper-abstract-body{white-space:pre-wrap;line-height:1.6;margin-top:18px}
 .designer-top-actions{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding:14px;margin:14px 0 18px;background:#fff;border:1px solid #aaa;border-radius:10px}.designer-preview-actions{display:flex;gap:8px;flex-wrap:wrap}.designer-reset-action{display:flex;flex-direction:column;align-items:flex-end;gap:4px;padding-left:18px;border-left:1px solid #ccc}.designer-reset-action span{font-size:11px;color:#666;max-width:260px;text-align:right}.designer-reset-btn{border:0;background:transparent;color:#555;text-decoration:underline;text-underline-offset:3px;font-size:12px;padding:5px 2px}.designer-reset-btn:hover{color:#111}.designer-reset-btn:focus-visible{outline:3px solid #1765a6;outline-offset:2px}@media(max-width:700px){.designer-top-actions{display:block}.designer-reset-action{align-items:flex-start;border-left:0;border-top:1px solid #ccc;padding:12px 0 0;margin-top:12px}.designer-reset-action span{text-align:left}}
@@ -3691,8 +3692,14 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
       });
     });
   }
+  function addConferenceTeamGuidance(){
+    const hostGroup=document.querySelector('#peopleGroups .people-group');if(!hostGroup)return;
+    const empty=[...hostGroup.querySelectorAll('p.small')].find(p=>p.textContent.trim()==='None added yet.');
+    if(empty)empty.innerHTML='Conference Team members can be entered on the <button type="button" class="people-setup-link" data-go-setup-team>Set Up Conference</button> page.';
+    hostGroup.querySelector('[data-go-setup-team]')?.addEventListener('click',()=>show('setup'));
+  }
   const baseRenderPeople=renderPeople;
-  renderPeople=function(){removeDefaultUnnamedPerson();applyAutomaticMemberships();baseRenderPeople();addMembershipControls();if(typeof renderSetupTeamSlots==='function')renderSetupTeamSlots();bindSetupPeople()};
+  renderPeople=function(){removeDefaultUnnamedPerson();applyAutomaticMemberships();baseRenderPeople();addConferenceTeamGuidance();addMembershipControls();if(typeof renderSetupTeamSlots==='function')renderSetupTeamSlots();bindSetupPeople()};
 
   // Preserve deliberate removal from the automatically populated committee.
   document.getElementById('people')?.addEventListener('click',e=>{
