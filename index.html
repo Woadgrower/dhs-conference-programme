@@ -3122,7 +3122,8 @@ const ACCESSIBILITY_PROMPTS=[
  ['Auditory access','Hearing loops, microphones, captioning and acoustic information.'],
  ['Neurodiversity & sensory access','Quiet spaces, lighting/sound conditions and ability to leave/re-enter sessions.'],
  ['Facilities','Accessible toilets, rest areas, seating and gender-neutral facilities.'],
- ['Assistance & communication','Assistance dogs, accessibility contact and how to request adjustments.']
+ ['Assistance & communication','Assistance dogs, accessibility contact and how to request adjustments.'],
+ ['Emergency & evacuation','Accessible evacuation routes, refuge points, alarms and who will provide assistance.']
 ];
 function ensureInfoBlocks(x){
   if(!Array.isArray(x.blocks))x.blocks=[];
@@ -3135,6 +3136,8 @@ function ensureInfoBlocks(x){
   return x.blocks;
 }
 function infoBlockFields(x,b){
+  if(b.type==='heading'||b.type==='subheading')return `<div class="field"><label>${b.type==='heading'?'Heading':'Subheading'} text</label><input data-info-block-text="${esc(x.id)}|${esc(b.id)}" value="${esc(b.text||'')}" placeholder="Add ${b.type} text"></div>`;
+  if(b.type==='list')return `<div class="field"><label>Bulleted list — one item per line</label><textarea data-info-block-text="${esc(x.id)}|${esc(b.id)}" placeholder="First item&#10;Second item">${esc(b.text||'')}</textarea></div>`;
   if(b.type==='crossref'){
     let opts=conferenceInfo.filter(y=>y.id!==x.id&&y.active).map(y=>`<option value="${esc(y.id)}" ${b.target===y.id?'selected':''}>${esc(y.title)}</option>`).join('');
     return `<div class="field"><label>Link to Guide section</label><select data-info-block-target="${esc(x.id)}|${esc(b.id)}"><option value="">Choose section</option>${opts}</select></div><div class="field"><label>Link wording</label><input data-info-block-text="${esc(x.id)}|${esc(b.id)}" value="${esc(b.text||'')}" placeholder="e.g. See step-free travel information"></div>`;
@@ -3148,11 +3151,11 @@ function renderConferenceInformation(){
   const active=conferenceInfo.filter(x=>x.active);
   infoEditors.innerHTML=active.length?active.map(x=>{
     let blocks=ensureInfoBlocks(x);
-    let prompts=x.id==='accessibility'?`<div class="accessibility-prompts"><b>Accessibility prompts</b><p class="small">Add only the categories relevant to your conference. These prompts help you remember common information delegates may need.</p>${ACCESSIBILITY_PROMPTS.map(([t,d])=>`<button class="prompt-chip" type="button" data-access-prompt="${esc(x.id)}" data-prompt-title="${esc(t)}" data-prompt-text="${esc(d)}">${esc(t)}</button>`).join('')}</div>`:'';
+    let prompts=x.id==='accessibility'?`<div class="accessibility-prompts"><b>Suggested accessibility sections</b><p class="small">Add only the categories relevant to your conference. Each choice creates an editable subsection.</p>${ACCESSIBILITY_PROMPTS.map(([t,d])=>`<button class="prompt-chip" type="button" data-access-prompt="${esc(x.id)}" data-prompt-title="${esc(t)}" data-prompt-text="${esc(d)}">+ ${esc(t)}</button>`).join('')}<button class="prompt-chip access-travel-link" type="button" data-access-travel-link="${esc(x.id)}">↗ Link to Travel &amp; Transport</button></div>`:'';
     return `<div class="info-editor-card"><div class="people-head"><div><h3><span class="info-colour-chip" style="background:${infoColour(x.id)}"></span>${esc(x.title)}</h3><span class="small">Public Conference Guide section</span></div>${x.standard?'':`<button class="tiny-edit" data-info-delete="${esc(x.id)}" type="button">Delete</button>`}</div>
       <div class="field"><label>Section title</label><input data-info-field="title" data-info-id="${esc(x.id)}" value="${esc(x.title)}"></div>${prompts}
-      <div class="info-block-list">${blocks.map(b=>`<div class="info-block-editor"><div class="info-block-head"><b>${esc(({text:'Text',note:'Practical note',contact:'Contact',link:'Link',download:'Download',crossref:'Cross-reference'})[b.type]||b.type)}</b><button class="mini" type="button" data-remove-info-block="${esc(x.id)}|${esc(b.id)}">Remove</button></div>${infoBlockFields(x,b)}</div>`).join('')}</div>
-      <div class="add-info-block"><select data-add-block-type="${esc(x.id)}"><option value="text">Text</option><option value="note">Practical note</option><option value="contact">Contact</option><option value="link">Link</option><option value="download">Download / document link</option><option value="crossref">Link to another Guide section</option></select><button class="mini" type="button" data-add-info-block="${esc(x.id)}">+ Add information</button></div>
+      <div class="info-block-list">${blocks.map(b=>`<div class="info-block-editor"><div class="info-block-head"><b>${esc(({heading:'Heading',subheading:'Subheading',text:'Body text',list:'Bulleted list',note:'Practical note',contact:'Contact',link:'Link',download:'Download',crossref:'Cross-reference'})[b.type]||b.type)}</b><button class="mini" type="button" data-remove-info-block="${esc(x.id)}|${esc(b.id)}">Remove</button></div>${infoBlockFields(x,b)}</div>`).join('')}</div>
+      <div class="add-info-block"><select data-add-block-type="${esc(x.id)}"><option value="heading">Heading</option><option value="subheading">Subheading</option><option value="text">Body text</option><option value="list">Bulleted list</option><option value="note">Practical note</option><option value="contact">Contact</option><option value="link">Link — add as many as needed</option><option value="download">Download / document link</option><option value="crossref">Link to another Guide section</option></select><button class="mini" type="button" data-add-info-block="${esc(x.id)}">+ Add information</button></div>
     </div>`;
   }).join(''):'<p class="small">No Conference Information sections have been added yet. Use Add above.</p>';
   infoCatalogue.querySelectorAll('[data-info-add]').forEach(b=>b.onclick=()=>{let x=conferenceInfo.find(i=>i.id===b.dataset.infoAdd);if(x){pushUndo('Add Conference Information section');x.active=true;renderConferenceInformation();renderPublicInfo();renderPaletteControls()}});
@@ -3163,8 +3166,12 @@ function renderConferenceInformation(){
   infoEditors.querySelectorAll('[data-remove-info-block]').forEach(btn=>btn.onclick=()=>{let [id,bid]=btn.dataset.removeInfoBlock.split('|'),x=conferenceInfo.find(i=>i.id===id);if(!x)return;x.blocks=ensureInfoBlocks(x).filter(b=>b.id!==bid);renderConferenceInformation();renderPublicInfo()});
   ['title','text','url','target'].forEach(field=>infoEditors.querySelectorAll(`[data-info-block-${field}]`).forEach(el=>{let handler=()=>{let [id,bid]=el.dataset['infoBlock'+field[0].toUpperCase()+field.slice(1)].split('|'),x=conferenceInfo.find(i=>i.id===id),b=x&&ensureInfoBlocks(x).find(z=>z.id===bid);if(!b)return;b[field]=el.value;renderPublicInfo()};el.oninput=handler;el.onchange=handler}));
   infoEditors.querySelectorAll('[data-access-prompt]').forEach(btn=>btn.onclick=()=>{let x=conferenceInfo.find(i=>i.id===btn.dataset.accessPrompt);if(!x)return;ensureInfoBlocks(x).push({id:'block-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),type:'text',title:btn.dataset.promptTitle,text:'',prompt:btn.dataset.promptText});renderConferenceInformation();renderPublicInfo()});
+  infoEditors.querySelectorAll('[data-access-travel-link]').forEach(btn=>btn.onclick=()=>{let x=conferenceInfo.find(i=>i.id===btn.dataset.accessTravelLink),travel=conferenceInfo.find(i=>i.id==='transport');if(!x||!travel)return;travel.active=true;let blocks=ensureInfoBlocks(x);if(!blocks.some(b=>b.type==='crossref'&&b.target==='transport'))blocks.push({id:'block-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),type:'crossref',title:'',text:'See accessible travel and transport information',url:'',target:'transport'});renderConferenceInformation();renderPublicInfo();renderPaletteControls()});
 }
 function renderInfoBlockPublic(x,b){
+  if(b.type==='heading')return b.text?`<h4 class="guide-content-heading">${esc(b.text)}</h4>`:'';
+  if(b.type==='subheading')return b.text?`<h5 class="guide-content-subheading">${esc(b.text)}</h5>`:'';
+  if(b.type==='list'){let items=String(b.text||'').split(/\n+/).map(s=>s.trim()).filter(Boolean);return items.length?`<ul class="guide-content-list">${items.map(item=>`<li>${esc(item)}</li>`).join('')}</ul>`:''}
   if(b.type==='crossref'){let t=conferenceInfo.find(y=>y.id===b.target);return t?`<a class="guide-crossref" href="#guide-${esc(t.id)}">↗ ${esc(b.text||('See '+t.title))}</a>`:''}
   if(b.type==='link'||b.type==='download')return b.url?`<a class="info-public-link" href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.title|| (b.type==='download'?'Download':'More information'))}</a>`:'';
   if(b.type==='note')return `<aside class="guide-note">${b.title?`<b>${esc(b.title)}</b><br>`:''}${esc(b.text||'').replace(/\n/g,'<br>')}</aside>`;
@@ -3631,6 +3638,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
 .info-editor-card{scroll-margin-top:18px}.info-editor-card input,.info-editor-card textarea,.info-editor-card select{background:#fff!important;border:2px solid #666!important}.info-editor-card.v795-editing{outline:4px solid #1765a6!important;outline-offset:4px}.info-edit-btn,[data-info-add]{font-weight:800!important}
 .public-search-day{margin:22px 0 8px;padding-bottom:6px;border-bottom:2px solid currentColor;font-size:18px}.public-search-summary{margin:10px 0 18px;font-weight:700}.paper-short-summary{margin:5px 0!important;line-height:1.45}.full-abstract-link{display:inline-block;margin-top:5px;color:inherit;font-weight:750;text-decoration:underline;text-underline-offset:3px}.paper-abstract-dialog{width:min(760px,calc(100vw - 32px));max-height:85vh;border:0;border-radius:10px;padding:0;box-shadow:0 18px 60px #0006}.paper-abstract-dialog::backdrop{background:#0008}.paper-abstract-inner{padding:22px}.paper-abstract-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-bottom:1px solid #bbb;padding-bottom:12px}.paper-abstract-head h2{margin:0}.paper-abstract-close{border:1px solid #777;background:#fff;border-radius:6px;padding:6px 9px;font-weight:700}.paper-abstract-body{white-space:pre-wrap;line-height:1.6;margin-top:18px}
 .designer-top-actions{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding:14px;margin:14px 0 18px;background:#fff;border:1px solid #aaa;border-radius:10px}.designer-preview-actions{display:flex;gap:8px;flex-wrap:wrap}.designer-reset-action{display:flex;flex-direction:column;align-items:flex-end;gap:4px;padding-left:18px;border-left:1px solid #ccc}.designer-reset-action span{font-size:11px;color:#666;max-width:260px;text-align:right}.designer-reset-btn{border:0;background:transparent;color:#555;text-decoration:underline;text-underline-offset:3px;font-size:12px;padding:5px 2px}.designer-reset-btn:hover{color:#111}.designer-reset-btn:focus-visible{outline:3px solid #1765a6;outline-offset:2px}@media(max-width:700px){.designer-top-actions{display:block}.designer-reset-action{align-items:flex-start;border-left:0;border-top:1px solid #ccc;padding:12px 0 0;margin-top:12px}.designer-reset-action span{text-align:left}}
+.info-editor-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);gap:18px;align-items:start}.info-editor-fields{min-width:0}.info-inline-preview{position:sticky;top:14px;border:1px solid currentColor;border-radius:9px;padding:18px;min-height:180px}.info-inline-preview-label{font-size:10px;font-weight:850;letter-spacing:.08em;margin-bottom:10px}.info-inline-preview h3{margin:0 0 14px}.guide-content-heading{font-size:21px;margin:18px 0 7px}.guide-content-subheading{font-size:16px;margin:14px 0 5px}.guide-content-list{padding-left:22px}.add-block-help{margin:8px 0 5px}.access-travel-link{font-weight:850!important}@media(max-width:900px){.info-editor-layout{grid-template-columns:1fr}.info-inline-preview{position:static}}
 </style>
 <script id="v795Script">
 (function(){
@@ -3790,9 +3798,17 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
     const field=card.querySelector('input,textarea,select');if(field)setTimeout(()=>field.focus(),250);
     setTimeout(()=>card.classList.remove('v795-editing'),2500);
   }
+  function refreshInlineInfoPreview(id){
+    const x=conferenceInfo.find(item=>item.id===id),preview=document.querySelector(`#info-editor-${CSS.escape(id)} .info-inline-preview`);if(!x||!preview)return;
+    const bg=infoColour(x.id),fg=contrastText(bg),blocks=ensureInfoBlocks(x);preview.style.background=bg;preview.style.color=fg;preview.innerHTML=`<div class="info-inline-preview-label">SECTION PREVIEW</div><h3>${esc(x.title)}</h3>${blocks.length?blocks.map(b=>renderInfoBlockPublic(x,b)).join(''):'<span class="placeholder">Start adding information to preview this section.</span>'}`;
+  }
+  function addInlineInfoPreviews(){
+    conferenceInfo.filter(x=>x.active).forEach(x=>{const card=document.getElementById('info-editor-'+x.id);if(!card||card.querySelector('.info-editor-layout'))return;const layout=document.createElement('div'),fields=document.createElement('div'),preview=document.createElement('aside');layout.className='info-editor-layout';fields.className='info-editor-fields';preview.className='info-inline-preview';[...card.children].forEach(child=>fields.appendChild(child));const add=fields.querySelector('.add-info-block');if(add){const help=document.createElement('p');help.className='small add-block-help';help.textContent='Add headings, body text, lists and as many links or downloads as this section needs.';add.before(help)}layout.append(fields,preview);card.appendChild(layout);card.addEventListener('input',()=>setTimeout(()=>refreshInlineInfoPreview(x.id),0));card.addEventListener('change',()=>setTimeout(()=>refreshInlineInfoPreview(x.id),0));refreshInlineInfoPreview(x.id)});
+  }
   const baseConferenceInformation=renderConferenceInformation;
   renderConferenceInformation=function(){
     baseConferenceInformation();
+    addInlineInfoPreviews();
     document.querySelectorAll('#infoCatalogue [data-info-add]').forEach(b=>{b.textContent='Add & edit';const id=b.dataset.infoAdd;b.addEventListener('click',()=>setTimeout(()=>focusInfoEditor(id),0))});
     document.querySelectorAll('#infoCatalogue [data-info-edit]').forEach(b=>{const id=b.dataset.infoEdit;b.onclick=()=>focusInfoEditor(id)});
   };
