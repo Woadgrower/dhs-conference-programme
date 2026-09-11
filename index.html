@@ -1856,7 +1856,6 @@ for(let i=0;i<days.length;i++){
 }
 papers.forEach(p=>p.assigned=null);
 let peopleIndex=[
-{id:'seed-host-1',title:'',name:'',institution:'',function:'Conference Convenor & Organiser',role:'Conference Convenor',email:'',academicCommittee:false,programmeRoles:[],source:'seed'},
 {id:'dhs-chair',title:'Assoc. Prof. Dr.',name:'Sally-Anne Huxtable',institution:'London Metropolitan University',function:'DHS; JdH Editorial Board',role:'Chair of the Design History Society; Archives, Collections & Curatorship Editor / Ex Officio DHS Chair',email:'',academicCommittee:false,programmeRoles:[],source:'seed'},
 {id:'dhs-treasurer',title:'Dr',name:'Jo Pilcher',institution:'University of Brighton',function:'DHS',role:'Treasurer',email:'',academicCommittee:false,programmeRoles:[],source:'seed'},
 {id:'dhs-digital',title:'Dr',name:'Anna Kallen Talley',institution:'University of Edinburgh',function:'DHS',role:'Digital Secretary',email:'',academicCommittee:false,programmeRoles:[],source:'seed'},
@@ -3632,6 +3631,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
   function isAutoPerson(p){return AUTO_RE.test([p&&p.function,p&&p.role].filter(Boolean).join(' '))}
   function isJdhChair(p){return /chair.*editorial board|editorial board.*chair/i.test([p&&p.function,p&&p.role].filter(Boolean).join(' '))}
   function isDhsChair(p){return /chair.*\bdhs\b|\bdhs\b.*chair|chair of (the )?design history society/i.test([p&&p.function,p&&p.role].filter(Boolean).join(' '))}
+  function removeDefaultUnnamedPerson(){peopleIndex=peopleIndex.filter(p=>!(p.id==='seed-host-1'&&!String(p.name||'').trim()))}
   function applyAutomaticMemberships(){
     peopleIndex.forEach(p=>{
       p.programmeRoles=Array.isArray(p.programmeRoles)?p.programmeRoles:[];
@@ -3683,7 +3683,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
     });
   }
   const baseRenderPeople=renderPeople;
-  renderPeople=function(){applyAutomaticMemberships();baseRenderPeople();addMembershipControls();if(typeof renderSetupTeamSlots==='function')renderSetupTeamSlots();bindSetupPeople()};
+  renderPeople=function(){removeDefaultUnnamedPerson();applyAutomaticMemberships();baseRenderPeople();addMembershipControls();if(typeof renderSetupTeamSlots==='function')renderSetupTeamSlots();bindSetupPeople()};
 
   // Preserve deliberate removal from the automatically populated committee.
   document.getElementById('people')?.addEventListener('click',e=>{
@@ -3715,7 +3715,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
   const basePublicProgramme=renderPublicProgramme;renderPublicProgramme=function(){basePublicProgramme();autoContrast(document.getElementById('publicPreview')||document)};
   const basePublicInfo=renderPublicInfo;renderPublicInfo=function(){basePublicInfo();autoContrast(document.getElementById('publicPreview')||document)};
 
-  applyAutomaticMemberships();bindSetupPeople();renderPeople();applyTheme();
+  removeDefaultUnnamedPerson();applyAutomaticMemberships();bindSetupPeople();renderPeople();applyTheme();
 })();
 </script>
 </body></html>
