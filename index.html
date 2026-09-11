@@ -3223,6 +3223,7 @@ function collectCheckIssues(){
   let blockers=[],warnings=[];
   let placedIds=new Set(Object.values(placed).filter(Boolean).map(x=>x.id));
   builtPanels.forEach(p=>{if(!placedIds.has(p.id))warnings.push({text:`${p.title||p.draftRef} has not been placed in the timetable.`,go:'programme',action:'Go to Arrange Programme'});if(!p.chair)warnings.push({text:`${p.title||p.draftRef} does not yet have a chair.`,go:'build',action:'Go to Papers & Panels'})});
+  otherEvents.filter(e=>e.active===true&&!placedIds.has(e.id)).forEach(e=>warnings.push({text:`${e.title} could not be scheduled within the current days, 09:00 regular start, 18:30 panel cut-off and 22:30 evening finish. Add it manually or adjust the programme.`,go:'programme',action:'Go to Arrange Programme'}));
   let unassigned=papers.filter(p=>!p.assigned).length;if(unassigned)warnings.push({text:`${unassigned} accepted paper${unassigned===1?' is':'s are'} still not in a saved panel.`,go:'build',action:'Go to Papers & Panels'});
   accessibilityIssues().forEach(t=>warnings.push({text:t,go:'designer',action:'Go to Designer'}));
   return {blockers,warnings};
@@ -3848,12 +3849,13 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
     preferred.sort((a,b)=>Object.keys(placed).filter(k=>k.startsWith(a+'|EVENT|')).length-Object.keys(placed).filter(k=>k.startsWith(b+'|EVENT|')).length);
     for(const day of preferred){
       const rows=mainFrameworkForDay(day),boundary=(isOUP(ev)||isGala(ev)||ev.type==='social'||ev.type==='tour');
-      const positions=boundary?[rows.length,0]:rows.map((_,i)=>i).concat(rows.length);
+      let positions=boundary?[rows.length,0]:rows.map((_,i)=>i).concat(rows.length);
+      if(isAGM(ev)){const timeline=timelineForMainDay(day),estimatedStart=pos=>timeline.find(x=>x.position===pos)?.start??EVENING_START;positions=positions.filter(pos=>pos<rows.length).sort((a,b)=>Math.abs(estimatedStart(a)-13*60-30)-Math.abs(estimatedStart(b)-13*60-30))}
       for(const pos of positions){
         const at=eventsAtPosition(day,pos),cluster=at.length?Math.max(...at.map(x=>x.cluster||1))+1:1;
         ev.cluster=cluster;const key=`${day}|EVENT|${pos}|${cluster}|${ev.id}`;placed[key]=ev;
         const scheduled=timelineForMainDay(day).find(x=>x.kind==='events'&&x.events.some(item=>item.id===ev.id));
-        if(!panelOverrun(day)&&!(pos===rows.length&&scheduled&&scheduled.end>EVENING_END))return true;delete placed[key]
+        if(scheduled&&scheduled.start>=9*60&&!panelOverrun(day)&&!(pos===rows.length&&scheduled.end>EVENING_END))return true;delete placed[key]
       }
     }
     const pre=days.findIndex(d=>d.type==='pre');
@@ -3867,7 +3869,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
     const remaining=otherEvents.filter(e=>e.active===true&&!Object.values(placed).some(x=>x.id===e.id)),placedEvents=[],unplacedEvents=[];
     remaining.forEach(ev=>(automaticallyPlaceEvent(ev,mainDays,postDays)?placedEvents:unplacedEvents).push(ev));
     const newlyPlaced=[...new Set(Object.values(placed).map(x=>x.id).filter(id=>!before.has(id)))];
-    autosummary.style.display='block';autosummary.innerHTML=`<b>Automatic assignment complete.</b><br>${newlyPlaced.filter(id=>inventoryPanels().some(p=>p.id===id)).length} panel${newlyPlaced.filter(id=>inventoryPanels().some(p=>p.id===id)).length===1?'':'s'} and ${placedEvents.length} event${placedEvents.length===1?'':'s'} assigned.${unplacedEvents.length?` <b>${unplacedEvents.length} event${unplacedEvents.length===1?' could':'s could'} not be placed safely.</b>`:' All active events now fit.'}<br><span class="small">Panel times are filled to room capacity before another session is opened. Events follow their known day, exclusivity and finish-time rules. Everything remains editable.</span>${unplacedEvents.length?`<br><span class="small">Still to place: ${unplacedEvents.map(e=>esc(e.title)).join(' · ')}</span>`:''}<br><button id="undoauto" class="mini" style="margin-top:6px">Undo automatic assignment</button>`;
+    autosummary.style.display='block';autosummary.innerHTML=`<b>Automatic assignment complete.</b><br>${newlyPlaced.filter(id=>inventoryPanels().some(p=>p.id===id)).length} panel${newlyPlaced.filter(id=>inventoryPanels().some(p=>p.id===id)).length===1?'':'s'} and ${placedEvents.length} event${placedEvents.length===1?'':'s'} assigned.${unplacedEvents.length?`<div class="warningbox" style="margin-top:8px"><b>${unplacedEvents.length} event${unplacedEvents.length===1?' could':'s could'} not be scheduled within the current parameters.</b><br>${unplacedEvents.map(e=>esc(e.title)).join(' · ')}<br><span class="small">Add these manually or adjust the programme.</span></div>`:' All active events now fit.'}<br><span class="small">Automatic scheduling starts at 09:00, prefers early afternoon for the DHS AGM, fills panel rooms before opening another session, and observes the 18:30 panel and 22:30 evening limits. Earlier starts can still be added manually.</span><br><button id="undoauto" class="mini" style="margin-top:6px">Undo automatic assignment</button>`;
     renderBoard();renderTray();document.getElementById('undoauto').onclick=()=>{newlyPlaced.forEach(removePlacement);autosummary.style.display='none';renderBoard();renderTray()}
   });
   const baseSavedPanels=renderSavedPanels;renderSavedPanels=function(){baseSavedPanels();document.querySelectorAll('#savedPanelsList .saved-panel-row').forEach((row,i)=>{const p=builtPanels[i],ref=row.querySelector('.draftref');if(p&&p.autoGenerated&&ref&&!ref.querySelector('.auto-panel-badge'))ref.insertAdjacentHTML('beforeend','<span class="auto-panel-badge">KEYWORD DRAFT</span>')})};
