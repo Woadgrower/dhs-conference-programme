@@ -1633,6 +1633,7 @@ body>.host-header .host-undo-button:disabled{display:inline-flex!important;opaci
 <div class="field"><label>Type</label><select id="newEventType"><option value="workshop">Workshop</option><option value="roundtable">Roundtable</option><option value="exhibition">Exhibition</option><option value="special">Special Event</option><option value="tour">Tour / Offsite Event</option><option value="meeting">Meeting</option><option value="registration">Registration</option><option value="social">Reception / Social</option><option value="other">Other</option></select></div>
 <div class="field"><label>People involved — optional</label><input id="newEventPeople" placeholder="Separate names with commas"></div>
 <div class="field"><label>Usual duration</label><select id="newEventDuration"></select></div>
+<label class="option"><input id="newEventOngoing" type="checkbox"> Ongoing / non-temporal event — no start or finish time</label>
 <button id="createEventBtn" class="btn primary" style="width:100%">Add to Events</button><button id="cancelEventBtn" class="mini" style="width:100%;margin-top:6px">Cancel</button>
 </div></div><div id="traybody" class="traybody"></div>
     </aside>
@@ -1825,7 +1826,7 @@ let otherEvents=[
 {id:'roundtable',kind:'event',title:'Roundtable',type:'roundtable',mode:'insert',defaultDuration:60,duration:60,private:false,standard:true},
 {id:'meeting',kind:'event',title:'Meeting',type:'meeting',mode:'insert',defaultDuration:60,duration:60,private:false,standard:true},
 {id:'film-screening',kind:'event',title:'Film Screening',type:'film',mode:'insert',defaultDuration:90,duration:90,private:false,standard:true},
-{id:'exhibition',kind:'event',title:'Exhibition',type:'exhibition',mode:'timed',defaultDuration:120,duration:120,private:false,standard:true},
+{id:'exhibition',kind:'event',title:'Exhibition',type:'exhibition',mode:'ongoing',nonTemporal:true,defaultDuration:120,duration:120,private:false,standard:true},
 {id:'special-event',kind:'event',title:'Special Event',type:'special',mode:'insert',defaultDuration:60,duration:60,private:false,standard:true},
 {id:'keynote-1',kind:'event',title:'Keynote 1',type:'keynote',mode:'insert',defaultDuration:60,duration:60,private:false,standard:true},
 {id:'keynote-2',kind:'event',title:'Keynote 2',type:'keynote',mode:'insert',defaultDuration:60,duration:60,private:false,standard:true},
@@ -2445,6 +2446,7 @@ function isCoreConferenceEvent(ev){return isAGM(ev)||isJdH(ev)||ev?.type==='keyn
 function allowedOnPostDay(ev){return ev&&ev.kind==='event'&&(ev.type==='tour'||!isCoreConferenceEvent(ev))}
 
 function eventGuidance(ev){
+ if(ev.nonTemporal)return'Ongoing / throughout the conference · no start or finish time required.';
  if(isJdH(ev))return'Day 0 recommended · Closed meeting. Visible in the public timetable and may overlap student events with a warning.';
  if(isAGM(ev))return'Whole-conference event · no panel overlap. May overlap JdH or a student event with a warning.';
  if(isStudentEvent(ev))return'Student event · may overlap panels, JdH or the AGM with a warning.';
@@ -2568,7 +2570,8 @@ uiQueryAll('[data-insertpos]').forEach(z=>{
     let rowsNow=mainFrameworkForDay(currentDay),boundary=(pos===0||pos===rowsNow.length);
     if((isOUP(ev)||isGala(ev))&&!boundary){alert(`${ev.title} belongs outside the panel programme. Place it before the first panel block or in the Evening / after daytime programme area.`);return}
     if(ev.id==='jdh'&&currentDay!==0){let c=await scheduleChoice('JdH meeting placement','The JdH Editorial Board Meeting is normally on Day 0.',[{label:'Place anyway',value:'place',primary:true},{label:'Choose another time',value:'cancel'}]);if(c!=='place')return;}
-    if(ev.id==='welcome'&&currentDay!==1){let c=await scheduleChoice('Welcome Event placement','The Welcome Event is normally on Day 1.',[{label:'Place anyway',value:'place',primary:true},{label:'Choose another time',value:'cancel'}]);if(c!=='place')return;}
+    if(ev.id==='welcome'&&currentDay!==days.findIndex(d=>d.type==='main')){alert('The Welcome Event must be scheduled on Day 1.');return;}
+    if(ev.id==='registration'&&currentDay!==days.findIndex(d=>d.type==='main')){alert('Registration must be scheduled on Day 1.');return;}
     if(ev.type==='tour'&&pos!==0&&pos!==mainFrameworkForDay(currentDay).length){let c=await scheduleChoice('Tour overlaps the daytime programme','Tours are usually easiest for delegates before panels, at lunch, in the evening, or on pre/post-conference days.',[{label:'Place anyway',value:'place',primary:true},{label:'Choose another time',value:'cancel'}]);if(c!=='place')return;}
     let at=eventsAtPosition(currentDay,pos),cluster=1,intentional=false;
     if(at.length){
@@ -2635,7 +2638,7 @@ function renderTray(type=activeTrayType){
 }
 if(typeof resetDayColours!=='undefined')resetDayColours.onclick=()=>{pushUndo('Reset Host Editor day colours.');conferenceConfig.dayColors=['#d9e8f5','#e9dfef','#dfead9','#f2e3d8','#f0e7c8'];renderDays();renderBoard()};
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>renderTray(b.dataset.tab==='events'?'events':b.dataset.tab==='breaks'?'breaks':'panels'));
-newEventDuration.innerHTML=durationOptions(60);addEventBtn.onclick=()=>{addEventForm.style.display=addEventForm.style.display==='none'?'block':'none'};cancelEventBtn.onclick=()=>{addEventForm.style.display='none'};createEventBtn.onclick=()=>{let title=newEventTitle.value.trim();if(!title){alert('Enter an event name first.');return}let type=newEventType.value,mode=type==='tour'?'tour':type==='registration'?'registration':type==='social'?'social':'insert';let ev={id:'evt-custom-'+Date.now(),title,kind:'event',type,mode,standard:false,active:true,people:newEventPeople.value.split(',').map(x=>x.trim()).filter(Boolean),defaultDuration:+newEventDuration.value||60};if(type==='tour')ev.offsite=true;otherEvents.push(ev);newEventTitle.value='';newEventPeople.value='';addEventForm.style.display='none';renderTray('events')};
+newEventDuration.innerHTML=durationOptions(60);newEventType.onchange=()=>{if(newEventType.value==='exhibition')newEventOngoing.checked=true};addEventBtn.onclick=()=>{addEventForm.style.display=addEventForm.style.display==='none'?'block':'none'};cancelEventBtn.onclick=()=>{addEventForm.style.display='none'};createEventBtn.onclick=()=>{let title=newEventTitle.value.trim();if(!title){alert('Enter an event name first.');return}let type=newEventType.value,nonTemporal=newEventOngoing.checked,mode=nonTemporal?'ongoing':type==='tour'?'tour':type==='registration'?'registration':type==='social'?'social':'insert';let ev={id:'evt-custom-'+Date.now(),title,kind:'event',type,mode,nonTemporal,standard:false,active:true,people:newEventPeople.value.split(',').map(x=>x.trim()).filter(Boolean),defaultDuration:+newEventDuration.value||60};if(type==='tour')ev.offsite=true;otherEvents.push(ev);newEventTitle.value='';newEventPeople.value='';newEventOngoing.checked=false;addEventForm.style.display='none';renderTray('events')};
 assignNumbers.onclick=()=>{let entries=Object.entries(placed).filter(([k,p])=>inventoryPanels().some(x=>x.id===p.id));entries.sort((A,B)=>{let [da,ra,rooma]=A[0].split('|'),[db,rb,roomb]=B[0].split('|');if(+da!==+db)return +da-+db;let sa=panelStart(+da,ra),sb=panelStart(+db,rb);if(sa!==sb)return sa-sb;return roomsOrder(rooma)-roomsOrder(roomb)});panelNumbers={};entries.forEach(([k,p],i)=>panelNumbers[p.id]='Panel '+String(i+1).padStart(2,'0'));numberingNote.style.display='block';numberingNote.innerHTML=`<b>${entries.length} scheduled panel${entries.length===1?'':'s'} numbered in chronological order.</b><br>Numbers use actual day, calculated timetable start time and room order.`;assignNumbers.textContent='Refresh chronological panel numbers';renderBoard();renderTray()}
 function roomsOrder(r){let rs=conferenceRooms().map(x=>x.room);let i=rs.indexOf(r);return i<0?999:i}
 
@@ -2717,7 +2720,7 @@ function renderPublicProgramme(){
   if(!entries.length){publicProgramme.innerHTML='<div class="public-event-card"><b>No public programme items have been placed on this day yet.</b></div>';saveFavourites();return}
   let rows=[];
   entries.forEach(e=>{
-    let time=`${fmt(e.start)}–${fmt(e.end)}`;
+    let time=e.nonTemporal?'Ongoing':`${fmt(e.start)}–${fmt(e.end)}`;
     if(e.kind==='panels'){
       let panels=e.panels.filter(({p,room})=>{
         let key=favKey('panel',p.id),text=[p.title,room,...panelPaperRecords(p).map(pp=>pp.title+' '+pp.people)].join(' ').toLowerCase();
@@ -3223,7 +3226,8 @@ function collectCheckIssues(){
   let blockers=[],warnings=[];
   let placedIds=new Set(Object.values(placed).filter(Boolean).map(x=>x.id));
   builtPanels.forEach(p=>{if(!placedIds.has(p.id))warnings.push({text:`${p.title||p.draftRef} has not been placed in the timetable.`,go:'programme',action:'Go to Arrange Programme'});if(!p.chair)warnings.push({text:`${p.title||p.draftRef} does not yet have a chair.`,go:'build',action:'Go to Papers & Panels'})});
-  otherEvents.filter(e=>e.active===true&&!placedIds.has(e.id)).forEach(e=>warnings.push({text:`${e.title} could not be scheduled within the current days, 09:00 regular start, 18:30 panel cut-off and 22:30 evening finish. Add it manually or adjust the programme.`,go:'programme',action:'Go to Arrange Programme'}));
+  otherEvents.filter(e=>e.active===true&&!e.nonTemporal&&!placedIds.has(e.id)).forEach(e=>warnings.push({text:`${e.title} could not be scheduled within the current days, 09:00 regular start, 18:30 panel cut-off and 22:30 evening finish. Add it manually or adjust the programme.`,go:'programme',action:'Go to Arrange Programme'}));
+  Object.entries(placed).filter(([k,e])=>e&&(e.id==='welcome'||e.id==='registration')&&+k.split('|')[0]!==days.findIndex(d=>d.type==='main')).forEach(([,e])=>warnings.push({text:`${e.title} must be scheduled on Day 1.`,go:'programme',action:'Go to Arrange Programme'}));
   let unassigned=papers.filter(p=>!p.assigned).length;if(unassigned)warnings.push({text:`${unassigned} accepted paper${unassigned===1?' is':'s are'} still not in a saved panel.`,go:'build',action:'Go to Papers & Panels'});
   accessibilityIssues().forEach(t=>warnings.push({text:t,go:'designer',action:'Go to Designer'}));
   return {blockers,warnings};
@@ -3844,12 +3848,11 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
       const pre=days.findIndex(d=>d.type==='pre');if(pre>=0){let [s,e]=nextFreeFlexTime(pre,duration);addFlexEvent(pre,ev,fmt(s),fmt(e));return true}
     }
     if(ev.type==='tour'&&postDays.length){let day=postDays[0],[s,e]=nextFreeFlexTime(day,duration);addFlexEvent(day,ev,fmt(s),fmt(e));return true}
-    let preferred=[...mainDays];
-    if(ev.id==='welcome'&&mainDays.length)preferred=[mainDays[0],...mainDays.slice(1)];
-    preferred.sort((a,b)=>Object.keys(placed).filter(k=>k.startsWith(a+'|EVENT|')).length-Object.keys(placed).filter(k=>k.startsWith(b+'|EVENT|')).length);
+    const dayOneOnly=ev.id==='welcome'||ev.id==='registration';let preferred=dayOneOnly&&mainDays.length?[mainDays[0]]:[...mainDays];
+    if(!dayOneOnly)preferred.sort((a,b)=>Object.keys(placed).filter(k=>k.startsWith(a+'|EVENT|')).length-Object.keys(placed).filter(k=>k.startsWith(b+'|EVENT|')).length);
     for(const day of preferred){
       const rows=mainFrameworkForDay(day),boundary=(isOUP(ev)||isGala(ev)||ev.type==='social'||ev.type==='tour');
-      let positions=boundary?[rows.length,0]:rows.map((_,i)=>i).concat(rows.length);
+      let positions=dayOneOnly?[0]:boundary?[rows.length,0]:rows.map((_,i)=>i).concat(rows.length);
       if(isAGM(ev)){const timeline=timelineForMainDay(day),estimatedStart=pos=>timeline.find(x=>x.position===pos)?.start??EVENING_START;positions=positions.filter(pos=>pos<rows.length).sort((a,b)=>Math.abs(estimatedStart(a)-13*60-30)-Math.abs(estimatedStart(b)-13*60-30))}
       for(const pos of positions){
         const at=eventsAtPosition(day,pos),cluster=at.length?Math.max(...at.map(x=>x.cluster||1))+1:1;
@@ -3863,17 +3866,21 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
     return false
   }
   document.getElementById('autoPlaceAll')?.addEventListener('click',()=>{
+    const firstMainDay=days.findIndex(d=>d.type==='main'),displacedEvents=[];Object.entries(placed).forEach(([k,item])=>{if((item?.id==='welcome'||item?.id==='registration')&&+k.split('|')[0]!==firstMainDay){displacedEvents.push([k,item]);delete placed[k]}});
     const before=new Set(Object.values(placed).map(x=>x.id));pushUndo('Assigned all panels and events automatically.');
     autoPlace.onclick();
     const mainDays=days.map((d,i)=>d.type==='main'?i:-1).filter(i=>i>=0),postDays=days.map((d,i)=>d.type==='post'?i:-1).filter(i=>i>=0);
-    const remaining=otherEvents.filter(e=>e.active===true&&!Object.values(placed).some(x=>x.id===e.id)),placedEvents=[],unplacedEvents=[];
+    const eventPriority=e=>e.id==='welcome'?0:e.id==='registration'?1:2,remaining=otherEvents.filter(e=>e.active===true&&!e.nonTemporal&&!Object.values(placed).some(x=>x.id===e.id)).sort((a,b)=>eventPriority(a)-eventPriority(b)),placedEvents=[],unplacedEvents=[];
     remaining.forEach(ev=>(automaticallyPlaceEvent(ev,mainDays,postDays)?placedEvents:unplacedEvents).push(ev));
     const newlyPlaced=[...new Set(Object.values(placed).map(x=>x.id).filter(id=>!before.has(id)))];
     autosummary.style.display='block';autosummary.innerHTML=`<b>Automatic assignment complete.</b><br>${newlyPlaced.filter(id=>inventoryPanels().some(p=>p.id===id)).length} panel${newlyPlaced.filter(id=>inventoryPanels().some(p=>p.id===id)).length===1?'':'s'} and ${placedEvents.length} event${placedEvents.length===1?'':'s'} assigned.${unplacedEvents.length?`<div class="warningbox" style="margin-top:8px"><b>${unplacedEvents.length} event${unplacedEvents.length===1?' could':'s could'} not be scheduled within the current parameters.</b><br>${unplacedEvents.map(e=>esc(e.title)).join(' · ')}<br><span class="small">Add these manually or adjust the programme.</span></div>`:' All active events now fit.'}<br><span class="small">Automatic scheduling starts at 09:00, prefers early afternoon for the DHS AGM, fills panel rooms before opening another session, and observes the 18:30 panel and 22:30 evening limits. Earlier starts can still be added manually.</span><br><button id="undoauto" class="mini" style="margin-top:6px">Undo automatic assignment</button>`;
-    renderBoard();renderTray();document.getElementById('undoauto').onclick=()=>{newlyPlaced.forEach(removePlacement);autosummary.style.display='none';renderBoard();renderTray()}
+    renderBoard();renderTray();document.getElementById('undoauto').onclick=()=>{newlyPlaced.forEach(removePlacement);displacedEvents.forEach(([k,item])=>placed[k]=item);autosummary.style.display='none';renderBoard();renderTray()}
   });
   const baseSavedPanels=renderSavedPanels;renderSavedPanels=function(){baseSavedPanels();document.querySelectorAll('#savedPanelsList .saved-panel-row').forEach((row,i)=>{const p=builtPanels[i],ref=row.querySelector('.draftref');if(p&&p.autoGenerated&&ref&&!ref.querySelector('.auto-panel-badge'))ref.insertAdjacentHTML('beforeend','<span class="auto-panel-badge">KEYWORD DRAFT</span>')})};
-  const v795EveningRenderBoard=renderBoard;renderBoard=function(){v795EveningRenderBoard();const zone=document.querySelector('.evening-insert');if(zone){const heading=zone.querySelector('b'),note=zone.querySelector('span');if(heading)heading.textContent='＋ Evening programme · 18:30–22:30';if(note)note.textContent='Drop a Reception, Dinner, Screening or other evening Event here'}};
+  function addScheduledEventDeleteControls(){document.querySelectorAll('#slotboard .insertedevent[data-panelid],#slotboard .flexevent[data-panelid]').forEach(card=>{const id=card.dataset.panelid,ev=otherEvents.find(x=>x.id===id);if(!ev||card.querySelector('[data-delete-scheduled-event]'))return;const b=document.createElement('button');b.type='button';b.className='mini danger-lite';b.dataset.deleteScheduledEvent=id;b.textContent='Delete event';b.title=ev.standard===false?'Delete this event permanently':'Remove this event from the conference';b.onclick=e=>{e.stopPropagation();if(!confirm(`Delete ${ev.title} from the conference?${ev.standard===false?' This custom event will be deleted permanently.':' You can add this standard event again later from Set Up Conference.'}`))return;pushUndo(`Deleted ${ev.title}.`);removePlacement(id);if(ev.standard===false)otherEvents=otherEvents.filter(x=>x.id!==id);else ev.active=false;renderSetupEvents();renderBoard();renderTray('events')};card.appendChild(b)})}
+  const v795TemporalPublicEntries=publicEntriesForDay;publicEntriesForDay=function(day){return [...otherEvents.filter(e=>e.active===true&&e.nonTemporal).map(e=>({id:e.id,title:e.title,type:e.type||'other',place:e.place||'',attendance:eventAttendanceNote(e),kind:'event',nonTemporal:true})),...v795TemporalPublicEntries(day)]};
+  const v795TemporalSetupEvents=renderSetupEvents;renderSetupEvents=function(){v795TemporalSetupEvents();document.querySelectorAll('#setupStandardEvents .setup-event-row').forEach((row,i)=>{const ev=setupEventsList()[i],main=row.firstElementChild;if(!ev||!main||main.querySelector('[data-ongoing-event]'))return;const label=document.createElement('label');label.className='option small';label.innerHTML=`<input type="checkbox" data-ongoing-event="${esc(ev.id)}" ${ev.nonTemporal?'checked':''}> Ongoing / no fixed time`;label.querySelector('input').onchange=e=>{ev.nonTemporal=e.target.checked;ev.mode=ev.nonTemporal?'ongoing':'insert';removePlacement(ev.id);renderSetupEvents();renderTray('events');renderPublicProgramme()};main.appendChild(label)})};
+  const v795EveningRenderBoard=renderBoard;renderBoard=function(){v795EveningRenderBoard();const zone=document.querySelector('.evening-insert');if(zone){const heading=zone.querySelector('b'),note=zone.querySelector('span');if(heading)heading.textContent='＋ Evening programme · 18:30–22:30';if(note)note.textContent='Drop a Reception, Dinner, Screening or other evening Event here'}addScheduledEventDeleteControls()};
   refreshChairOptions=function(){const dl=document.getElementById('chairPeopleOptions');if(!dl)return;dl.innerHTML=peopleIndex.filter(p=>p.academicCommittee&&String(p.name||'').trim()).sort((a,b)=>personDisplayName(a).localeCompare(personDisplayName(b))).map(p=>`<option value="${esc(personDisplayName(p))}">${esc([p.function,p.role].filter(Boolean).join(' · '))}</option>`).join('')};
   const savePanelWithCommitteeChair=savepanel.onclick;savepanel.onclick=function(e){const entered=chair.value.trim();if(entered){const key=normalPersonKey(entered),member=peopleIndex.find(p=>p.academicCommittee&&normalPersonKey(personDisplayName(p))===key);if(!member){saveresult.textContent='Choose the panel Chair from the Academic Committee. Add the person to the Academic Committee on the People page first.';chair.focus();return}chair.value=personDisplayName(member)}return savePanelWithCommitteeChair.call(this,e)};
   const baseConferenceInformation=renderConferenceInformation;
@@ -3885,7 +3892,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
   };
 
   ensurePaperSummaries();removeDefaultUnnamedPerson();applyAutomaticMemberships();bindSetupPeople();renderPeople();refreshChairOptions();applyTheme();
-  renderConferenceInformation();renderBoard();
+  renderConferenceInformation();renderSetupEvents();renderBoard();
 })();
 </script>
 </body></html>
