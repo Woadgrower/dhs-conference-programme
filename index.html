@@ -3633,9 +3633,13 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
   function jdhPriority(p){if(isJdhChair(p))return 0;if(/^managing editor$/i.test(String(p&&p.role||'').trim()))return 1;return 2}
   function isDhsChair(p){return /chair.*\bdhs\b|\bdhs\b.*chair|chair of (the )?design history society/i.test([p&&p.function,p&&p.role].filter(Boolean).join(' '))}
   function removeDefaultUnnamedPerson(){peopleIndex=peopleIndex.filter(p=>!(p.id==='seed-host-1'&&!String(p.name||'').trim()))}
+  function isSeniorAdministrator(p){return /\bsenior administrator\b/i.test([p&&p.function,p&&p.role].filter(Boolean).join(' '))}
+  const baseEligibleAcademicPerson=eligibleAcademicPerson;
+  eligibleAcademicPerson=function(p){return !isSeniorAdministrator(p)&&baseEligibleAcademicPerson(p)};
   function applyAutomaticMemberships(){
     peopleIndex.forEach(p=>{
       p.programmeRoles=Array.isArray(p.programmeRoles)?p.programmeRoles:[];
+      if(isSeniorAdministrator(p)){p.academicCommittee=false;p.programmeRoles=p.programmeRoles.filter(x=>x!=='Panel Chair');return}
       if(isAutoPerson(p)){
         if(p.academicCommittee!==false||!p.committeeOptOut)p.academicCommittee=true;
         if(!p.chairOptOut&&!p.programmeRoles.includes('Panel Chair'))p.programmeRoles.push('Panel Chair');
