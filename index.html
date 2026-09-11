@@ -3630,6 +3630,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
   const AUTO_RE=/conference convenor|\bdhs\b|\bjdh\b|journal of design history/i;
   function isAutoPerson(p){return AUTO_RE.test([p&&p.function,p&&p.role].filter(Boolean).join(' '))}
   function isJdhChair(p){return /chair.*editorial board|editorial board.*chair/i.test([p&&p.function,p&&p.role].filter(Boolean).join(' '))}
+  function jdhPriority(p){if(isJdhChair(p))return 0;if(/^managing editor$/i.test(String(p&&p.role||'').trim()))return 1;return 2}
   function isDhsChair(p){return /chair.*\bdhs\b|\bdhs\b.*chair|chair of (the )?design history society/i.test([p&&p.function,p&&p.role].filter(Boolean).join(' '))}
   function removeDefaultUnnamedPerson(){peopleIndex=peopleIndex.filter(p=>!(p.id==='seed-host-1'&&!String(p.name||'').trim()))}
   function applyAutomaticMemberships(){
@@ -3651,7 +3652,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
     else if(kind==='chair')list=peopleIndex.filter(p=>(p.programmeRoles||[]).includes('Panel Chair'));
     else if(kind==='student')list=peopleIndex.filter(p=>/student helper/i.test([p.function,p.role].filter(Boolean).join(' ')));
     else list=[];
-    if(kind==='jdh')return [...list].sort((a,b)=>Number(isJdhChair(b))-Number(isJdhChair(a)));
+    if(kind==='jdh')return [...list].sort((a,b)=>jdhPriority(a)-jdhPriority(b));
     if(kind==='dhs')return [...list].sort((a,b)=>Number(isDhsChair(b))-Number(isDhsChair(a)));
     return list;
   }
