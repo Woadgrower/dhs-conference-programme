@@ -1645,6 +1645,7 @@ body>.host-header .host-undo-button:disabled{display:inline-flex!important;opaci
 <div class="designer-label">FOR GRAPHIC / WEB DESIGNER</div>
 <h1>Design Sandbox</h1><p class="lead"><b>Sandbox</b> means a safe place to experiment. Try colours, type and graphics here without publishing anything; use the full public preview to inspect the finished site.</p>
 <p class="lead">Shape the conference visual identity without changing the dependable programme structure. Typography, colour and graphics update the public site while the timetable remains stable.</p>
+<div class="designer-top-actions"><div class="designer-preview-actions"><button id="popoutDesignerPreview" class="btn primary" type="button">Open live preview</button><button id="designerPreview" class="btn secondary" type="button">Open full public preview</button></div><div class="designer-reset-action"><button id="resetTheme" class="designer-reset-btn" type="button">Reset design defaults</button><span>Returns colours, type and layout to their original settings.</span></div></div>
 
 <div class="designer-workspace">
 <div class="designer-controls">
@@ -1769,7 +1770,6 @@ body>.host-header .host-undo-button:disabled{display:inline-flex!important;opaci
 <div class="designer-preview-column">
 <div class="card live-preview-card"><div class="designer-preview-toolbar"><div><b>Design Sandbox — large live preview</b><br><span class="small">This is the working public header and page at a useful design scale. Changes appear immediately and are not published.</span></div><span class="preview-device">Public site</span></div><div class="sandbox-tabs"><button type="button" class="active" data-sandbox-view="programme">Programme</button><button type="button" data-sandbox-view="information">Conference Guide</button><button type="button" data-sandbox-view="mobile">Mobile</button></div>
 <div id="designerLivePreview" class="designer-live-preview"></div>
-<div style="margin-top:12px"><button id="popoutDesignerPreview" class="btn primary" type="button">Open live preview</button> <button id="designerPreview" class="btn secondary">Open full public preview</button> <button id="resetTheme" class="btn secondary">Reset design defaults</button></div>
 </div>
 </div>
 </div>
@@ -3625,6 +3625,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
 .membership-remove{font-size:10px!important;line-height:1.1!important;padding:3px 5px!important;font-weight:600!important;white-space:nowrap}
 .info-editor-card{scroll-margin-top:18px}.info-editor-card input,.info-editor-card textarea,.info-editor-card select{background:#fff!important;border:2px solid #666!important}.info-editor-card.v795-editing{outline:4px solid #1765a6!important;outline-offset:4px}.info-edit-btn,[data-info-add]{font-weight:800!important}
 .public-search-day{margin:22px 0 8px;padding-bottom:6px;border-bottom:2px solid currentColor;font-size:18px}.public-search-summary{margin:10px 0 18px;font-weight:700}
+.designer-top-actions{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding:14px;margin:14px 0 18px;background:#fff;border:1px solid #aaa;border-radius:10px}.designer-preview-actions{display:flex;gap:8px;flex-wrap:wrap}.designer-reset-action{display:flex;flex-direction:column;align-items:flex-end;gap:4px;padding-left:18px;border-left:1px solid #ccc}.designer-reset-action span{font-size:11px;color:#666;max-width:260px;text-align:right}.designer-reset-btn{border:0;background:transparent;color:#555;text-decoration:underline;text-underline-offset:3px;font-size:12px;padding:5px 2px}.designer-reset-btn:hover{color:#111}.designer-reset-btn:focus-visible{outline:3px solid #1765a6;outline-offset:2px}@media(max-width:700px){.designer-top-actions{display:block}.designer-reset-action{align-items:flex-start;border-left:0;border-top:1px solid #ccc;padding:12px 0 0;margin-top:12px}.designer-reset-action span{text-align:left}}
 </style>
 <script id="v795Script">
 (function(){
