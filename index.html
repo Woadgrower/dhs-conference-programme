@@ -2477,11 +2477,11 @@ function structuralGuidance(r){
   return `${r.duration} min · Recommended afternoon`;
 }
 
-const PANEL_LATEST_END=18*60+30;
+const PANEL_LATEST_END=18*60+30,EVENING_START=18*60+30,EVENING_END=22*60+30;
 function mainFrameworkForDay(day){if(!structuralOrder[day])structuralOrder[day]=framework.map(r=>r.id);let map=Object.fromEntries(framework.map(r=>[r.id,r]));return structuralOrder[day].map(id=>map[id]).filter(Boolean)}
 function preferredWindow(row){if(row.kind==='lunch')return [720,870];if(row.id==='B1')return [570,720];if(row.id==='B2')return [870,1020];return null}
 function nudgeStructural(day,rowid,delta){let order=mainFrameworkForDay(day).map(r=>r.id),i=order.indexOf(rowid),j=Math.max(0,Math.min(order.length-1,i+delta));if(i===j)return;pushUndo('Moved a break or lunch block.');[order[i],order[j]]=[order[j],order[i]];structuralOrder[day]=order;renderBoard()}
-function timelineForMainDay(day){let now=mins(conferenceConfig.defaultStart||'08:00'),out=[],rows=mainFrameworkForDay(day);for(let pos=0;pos<=rows.length;pos++){for(let group of clusterEvents(day,pos)){let dur=Math.max(...group.map(e=>+(e.duration||e.defaultDuration||60)));out.push({kind:'events',start:now,end:now+dur,events:group,position:pos});now+=dur}if(pos===rows.length)break;let row=rows[pos],start=now,end=now+row.duration;out.push({kind:row.kind,start,end,row,position:pos});now=end}return out}
+function timelineForMainDay(day){let now=mins(conferenceConfig.defaultStart||'08:00'),out=[],rows=mainFrameworkForDay(day);for(let pos=0;pos<=rows.length;pos++){if(pos===rows.length&&clusterEvents(day,pos).length)now=Math.max(now,EVENING_START);for(let group of clusterEvents(day,pos)){let dur=Math.max(...group.map(e=>+(e.duration||e.defaultDuration||60)));out.push({kind:'events',start:now,end:now+dur,events:group,position:pos});now+=dur}if(pos===rows.length)break;let row=rows[pos],start=now,end=now+row.duration;out.push({kind:row.kind,start,end,row,position:pos});now=end}return out}
 function rowHasScheduledPanel(day,rowid){return Object.keys(placed).some(k=>{let parts=k.split('|');return parts.length===3&&+parts[0]===+day&&parts[1]===rowid&&placed[k]&&placed[k].kind!=='event'})}
 function panelOverrun(day){return timelineForMainDay(day).find(x=>x.kind==='panel'&&x.end>PANEL_LATEST_END&&x.row&&rowHasScheduledPanel(day,x.row.id))||null}
 function panelCutoffMessage(){return 'Academic panels must finish by 18:30. Rearrange the day, reduce the number of panel rounds, increase parallel capacity, or adjust an event or break.'}
@@ -2577,7 +2577,7 @@ uiQueryAll('[data-insertpos]').forEach(z=>{
       else{let protectedPair=(isAGM(existing)&&(isStudentEvent(ev)||isJdH(ev)))||(isAGM(ev)&&(isStudentEvent(existing)||isJdH(existing)))||(isJdH(existing)&&isStudentEvent(ev))||(isJdH(ev)&&isStudentEvent(existing));let choice=await scheduleChoice('Another event is already here',protectedPair?`${existing.title} and ${ev.title} would run at the same time. This overlap is allowed, but Conference Maker will keep it visible as a warning.`:`${existing.title} is already scheduled here.`,[{label:'Run both at the same time',value:'same',primary:true},{label:`Place ${ev.title} after ${existing.title}`,value:'after'},{label:'Choose another time',value:'cancel'}]);if(choice==='cancel'||choice===null)return;if(choice==='same'){cluster=existing.cluster||1;intentional=true}else cluster=Math.max(...at.map(x=>x.cluster||1))+1}
     }
     removePlacement(id);ev.duration=ev.duration||ev.defaultDuration||60;ev.cluster=cluster;if(intentional)ev.intentionalOverlap=true;
-    let eventKey=`${currentDay}|EVENT|${pos}|${cluster}|${id}`;placed[eventKey]=ev;if(panelOverrun(currentDay)){delete placed[eventKey];alert(panelCutoffMessage());return}moving=null;lastMovedId=id;renderBoard();renderTray('events')
+    let eventKey=`${currentDay}|EVENT|${pos}|${cluster}|${id}`;placed[eventKey]=ev;if(panelOverrun(currentDay)){delete placed[eventKey];alert(panelCutoffMessage());return}let scheduled=timelineForMainDay(currentDay).find(x=>x.kind==='events'&&x.events.some(item=>item.id===id));if(pos===rowsNow.length&&scheduled&&scheduled.end>EVENING_END){delete placed[eventKey];alert('Evening events must finish by 22:30. Shorten this event or move another evening event.');return}moving=null;lastMovedId=id;renderBoard();renderTray('events')
   }
 });
 uiQueryAll('[data-overlayrow]').forEach(z=>{
@@ -2694,13 +2694,14 @@ function candidatePanelSlots(panel,duties){
   return slots.sort((a,b)=>a.score-b.score||a.day-b.day||a.start-b.start);
 }
 autoPlace.onclick=()=>{
+  let repaired=[];Object.entries(placed).forEach(([key,p])=>{let bits=key.split('|');if(bits.length!==3||!p||p.kind==='event')return;let rt=timelineForMainDay(+bits[0]).find(x=>x.kind==='panel'&&x.row&&x.row.id===bits[1]);if(rt&&rt.end>PANEL_LATEST_END){repaired.push([key,p]);delete placed[key]}});
   let placedIds=new Set(Object.values(placed).map(x=>x.id)),remaining=inventoryPanels().filter(p=>!placedIds.has(p.id)),added=[];
   // Harder panels first: people with more existing duties get first choice of slots.
   let duties=scheduledDuties();remaining.sort((a,b)=>schedulingNames(b).reduce((n,x)=>n+duties.filter(d=>d.names.includes(x)).length,0)-schedulingNames(a).reduce((n,x)=>n+duties.filter(d=>d.names.includes(x)).length,0));
   for(let panel of remaining){let slots=candidatePanelSlots(panel,duties);if(!slots.length)continue;let chosen=slots[0];placed[chosen.key]=panel;added.push(panel.id);duties=scheduledDuties()}
   let unplaced=remaining.filter(p=>!added.includes(p.id));
-  autosummary.style.display='block';autosummary.innerHTML=`<b>Smart automatic placement complete.</b><br>${added.length} panel${added.length===1?'':'s'} placed. ${unplaced.length?`<b>${unplaced.length} could not be placed without breaking a hard constraint.</b>`:'All unassigned panels now fit.'}<br><span class="small">Conference Maker spread multi-role people across days where possible, then avoided consecutive duties and respected the 18:30 panel finish. You can move anything afterwards.</span>${unplaced.length?`<br><span class="small">Unplaced: ${unplaced.map(p=>esc(p.title||p.draftRef)).join(' · ')}</span>`:''}<br><button id="undoauto" class="mini" style="margin-top:6px">Undo automatic placement</button>`;
-  renderBoard();renderTray();document.getElementById('undoauto').onclick=()=>{for(let k of Object.keys(placed))if(placed[k]&&added.includes(placed[k].id))delete placed[k];autosummary.style.display='none';renderBoard();renderTray()}
+  autosummary.style.display='block';autosummary.innerHTML=`<b>Smart automatic placement complete.</b><br>${added.length} panel${added.length===1?'':'s'} placed.${repaired.length?` ${repaired.length} late panel placement${repaired.length===1?' was':'s were'} moved back before the 18:30 cut-off.`:''} ${unplaced.length?`<b>${unplaced.length} could not be placed without breaking a hard constraint.</b>`:'All unassigned panels now fit.'}<br><span class="small">Conference Maker fills the available rooms in each session, uses other conference days when needed, avoids participant conflicts and enforces the 18:30 panel finish. You can move anything afterwards.</span>${unplaced.length?`<br><span class="small">Unplaced: ${unplaced.map(p=>esc(p.title||p.draftRef)).join(' · ')}</span>`:''}<br><button id="undoauto" class="mini" style="margin-top:6px">Undo automatic placement</button>`;
+  renderBoard();renderTray();document.getElementById('undoauto').onclick=()=>{for(let k of Object.keys(placed))if(placed[k]&&added.includes(placed[k].id))delete placed[k];repaired.forEach(([k,p])=>placed[k]=p);autosummary.style.display='none';renderBoard();renderTray()}
 }
 
 function eventAttendanceNote(ev){if(!ev)return'';if(ev.attendance)return ev.attendance;if(ev.id==='jdh')return'Closed meeting';if(ev.id==='gala-dinner'||ev.type==='tour')return'Booking required';return''}
@@ -3137,7 +3138,7 @@ const INFO_SECTION_PROMPTS={
  registration:[['Registration desk','Location and opening times for registration.'],['Badges & materials','What delegates collect and whether identification is required.'],['Late arrivals','What to do when arriving after the desk closes.'],['Bookings & tickets','Events requiring advance booking or a separate ticket.']],
  contacts:[['General enquiries','Primary conference email and telephone contact.'],['On-the-day contact','Who to contact during conference hours.'],['Accessibility contact','How to request assistance or adjustments.'],['Emergency contact','Venue security and local emergency information.']],
  organisers:[['Conference convenors','Names, roles and institutional affiliations.'],['Conference administration','Administrator and coordinator responsibilities.'],['DHS & JdH','Relevant Society and Journal representatives.'],['Acknowledgements','Partners, funders, volunteers and local contributors.']],
- sustainability:[['Travel','Lower-carbon travel and local transport guidance.'],['Food & materials','Catering, reusable materials and sourcing choices.'],['Waste & recycling','Recycling points and waste-reduction arrangements.'],['Participation','How delegates can support the sustainability plan.']],
+ sustainability:[['Travel','Lower-carbon travel and local transport guidance.'],['Food & materials','Catering, reusable materials and sourcing choices.'],['Waste & recycling','Recycling points and waste-reduction arrangements.'],['How you can help','How delegates can reduce waste or reuse materials; opportunities to volunteer or join sustainability initiatives; how to report environmental or ethical concerns; ways to contribute ideas or feedback; expectations for exhibitors, caterers and speakers; and local community or environmental projects connected with the conference.']],
  venue:[['Arrival & entry','Which entrance to use and what delegates encounter on arrival.'],['Facilities','Toilets, cloakroom, seating, quiet space and prayer room.'],['Wayfinding','Signs, information desks and help moving between rooms.'],['Safety & emergencies','First aid, evacuation and venue security information.']],
  local:[['Design & culture','Museums, archives, galleries and design-related places.'],['Eating & socialising','Local areas for food, drink and informal meetings.'],['Practical local advice','Weather, clothing, currency, language and opening hours.'],['Free time','Walks, neighbourhoods and optional activities.']]
 };
@@ -3851,7 +3852,8 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
       for(const pos of positions){
         const at=eventsAtPosition(day,pos),cluster=at.length?Math.max(...at.map(x=>x.cluster||1))+1:1;
         ev.cluster=cluster;const key=`${day}|EVENT|${pos}|${cluster}|${ev.id}`;placed[key]=ev;
-        if(!panelOverrun(day))return true;delete placed[key]
+        const scheduled=timelineForMainDay(day).find(x=>x.kind==='events'&&x.events.some(item=>item.id===ev.id));
+        if(!panelOverrun(day)&&!(pos===rows.length&&scheduled&&scheduled.end>EVENING_END))return true;delete placed[key]
       }
     }
     const pre=days.findIndex(d=>d.type==='pre');
@@ -3869,6 +3871,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
     renderBoard();renderTray();document.getElementById('undoauto').onclick=()=>{newlyPlaced.forEach(removePlacement);autosummary.style.display='none';renderBoard();renderTray()}
   });
   const baseSavedPanels=renderSavedPanels;renderSavedPanels=function(){baseSavedPanels();document.querySelectorAll('#savedPanelsList .saved-panel-row').forEach((row,i)=>{const p=builtPanels[i],ref=row.querySelector('.draftref');if(p&&p.autoGenerated&&ref&&!ref.querySelector('.auto-panel-badge'))ref.insertAdjacentHTML('beforeend','<span class="auto-panel-badge">KEYWORD DRAFT</span>')})};
+  const v795EveningRenderBoard=renderBoard;renderBoard=function(){v795EveningRenderBoard();const zone=document.querySelector('.evening-insert');if(zone){const heading=zone.querySelector('b'),note=zone.querySelector('span');if(heading)heading.textContent='＋ Evening programme · 18:30–22:30';if(note)note.textContent='Drop a Reception, Dinner, Screening or other evening Event here'}};
   refreshChairOptions=function(){const dl=document.getElementById('chairPeopleOptions');if(!dl)return;dl.innerHTML=peopleIndex.filter(p=>p.academicCommittee&&String(p.name||'').trim()).sort((a,b)=>personDisplayName(a).localeCompare(personDisplayName(b))).map(p=>`<option value="${esc(personDisplayName(p))}">${esc([p.function,p.role].filter(Boolean).join(' · '))}</option>`).join('')};
   const savePanelWithCommitteeChair=savepanel.onclick;savepanel.onclick=function(e){const entered=chair.value.trim();if(entered){const key=normalPersonKey(entered),member=peopleIndex.find(p=>p.academicCommittee&&normalPersonKey(personDisplayName(p))===key);if(!member){saveresult.textContent='Choose the panel Chair from the Academic Committee. Add the person to the Academic Committee on the People page first.';chair.focus();return}chair.value=personDisplayName(member)}return savePanelWithCommitteeChair.call(this,e)};
   const baseConferenceInformation=renderConferenceInformation;
@@ -3880,7 +3883,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
   };
 
   ensurePaperSummaries();removeDefaultUnnamedPerson();applyAutomaticMemberships();bindSetupPeople();renderPeople();refreshChairOptions();applyTheme();
-  renderConferenceInformation();
+  renderConferenceInformation();renderBoard();
 })();
 </script>
 </body></html>
