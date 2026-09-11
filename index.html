@@ -834,8 +834,9 @@ body.programme-mode #programme .drop{
 /* v54 editable saved panels */
 .saved-panels-block{background:#fff;border:1px solid #aaa;border-radius:10px;padding:14px;margin:0 0 14px}
 .saved-panels-head h2{margin:0 0 3px}
-#savedPanelsList{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px;margin-top:10px}
-.saved-panel-row{border:1px solid #aaa;border-radius:8px;padding:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;background:#fafafa}
+#savedPanelsList{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:10px;margin-top:10px}
+.saved-panel-row{border:1px solid #aaa;border-radius:8px;padding:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;background:#fafafa}
+.saved-panel-main{min-width:0;flex:1}.saved-panel-title-label input{width:100%;min-width:0;font-size:13px;line-height:1.35}.saved-panel-papers{margin-top:9px;padding-top:8px;border-top:1px solid #ddd;display:grid;gap:7px}.saved-panel-paper{font-size:13px;line-height:1.35}.saved-panel-speakers{font-size:12px;color:#625a65;margin-top:2px}
 .saved-panel-row.editing{border:2px solid var(--accent);background:#fbf7fc}
 .saved-panel-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
 .paper-order-actions{display:flex;gap:4px;align-items:center}
@@ -1573,11 +1574,11 @@ body>.host-header .host-undo-button:disabled{display:inline-flex!important;opaci
 <section id="programme" class="view">
 <div class="boardtop programme-heading"><div><h1>3. Arrange Programme</h1><p class="lead">Use the timetable generated in Set Up Conference. Drag panels for speed, or use the smaller Move… control.</p></div></div>
 <div class="programme-actions">
-<button id="saveDemo" class="btn secondary">Save in this browser</button>
-<button id="exportConference" class="btn secondary">Download backup</button>
-<label class="btn secondary import-label">Restore backup<input id="importConference" type="file" accept=".json,application/json" hidden></label>
-<button id="assignNumbers" class="btn secondary">Number panels by timetable order</button>
-</div><div class="backup-note"><b>Backup &amp; restore:</b> “Save in this browser” keeps a working copy on this computer. “Download backup” creates a portable conference file; “Restore backup” reopens one. “Number panels by timetable order” assigns final panel references from the current schedule.</div>
+<button id="saveDemo" class="btn secondary" title="Keep a working copy of this conference on this computer.">Save in this browser</button>
+<button id="exportConference" class="btn secondary" title="Download a portable conference backup file.">Download backup</button>
+<label class="btn secondary import-label" title="Restore a conference from a previously downloaded backup file.">Restore backup<input id="importConference" type="file" accept=".json,application/json" hidden></label>
+<button id="assignNumbers" class="btn secondary" title="Assign final panel references in chronological timetable order.">Number panels by timetable order</button>
+</div>
 <div id="numberingNote" class="notice" style="display:none"></div>
 <div id="days" class="days"></div>
 <details class="day-colour-settings" open><summary>Day colours — Host Editor only</summary><p class="small">Choose colours that help you distinguish working days. These colours are only an organising aid in the Host Editor and do not set the public conference design.</p><div id="dayColourControls" class="day-colour-controls"></div><button id="resetDayColours" class="mini" type="button">Reset day colours</button></details>
@@ -1617,6 +1618,7 @@ body>.host-header .host-undo-button:disabled{display:inline-flex!important;opaci
         </label>
         <label class="option"><input type="checkbox" id="respectLocked" checked disabled> Respect locked events</label>
         <button id="autoPlace" class="btn primary" style="width:100%;margin-top:5px">Automatically place all panels</button>
+        <button id="autoPlaceAll" class="btn secondary" style="width:100%;margin-top:8px">Assign all panels and events automatically</button>
         <div id="autosummary" class="autosummary"></div>
       </div>
       <div class="tabs tray-tabs-3">
@@ -2114,7 +2116,7 @@ function panelIsScheduled(id){return Object.values(placed).some(p=>p&&p.id===id)
 function renderSavedPanels(){
   if(typeof savedPanelsList==='undefined')return;
   if(!builtPanels.length){savedPanelsList.innerHTML='<p class="small">No saved panels yet.</p>';return}
-  savedPanelsList.innerHTML=builtPanels.map(p=>`<div class="saved-panel-row ${p.id===editingPanelId?'editing':''}"><div class="saved-panel-main"><div class="draftref">${esc(panelNumbers[p.id]||p.draftRef)}</div><label class="saved-panel-title-label">Panel title <span>– can be added later</span><input data-saved-panel-title="${esc(p.id)}" value="${esc(p.title&&p.title!==p.draftRef?p.title:'')}" placeholder="Add title"></label><div class="small">${p.papers?.length||0} paper${p.papers?.length===1?'':'s'}${panelIsScheduled(p.id)?' · Scheduled':''}</div></div><div class="saved-panel-actions"><button class="mini" type="button" data-edit-panel="${esc(p.id)}">Edit</button><button class="mini danger-lite" type="button" data-dissolve-panel="${esc(p.id)}">Dissolve panel</button></div></div>`).join('');
+  savedPanelsList.innerHTML=builtPanels.map(p=>`<div class="saved-panel-row ${p.id===editingPanelId?'editing':''}"><div class="saved-panel-main"><div class="draftref">${esc(panelNumbers[p.id]||p.draftRef)}</div><label class="saved-panel-title-label">Panel title <span>– can be added later</span><input data-saved-panel-title="${esc(p.id)}" value="${esc(p.title&&p.title!==p.draftRef?p.title:'')}" placeholder="Add title"></label><div class="small">${p.papers?.length||0} paper${p.papers?.length===1?'':'s'}${panelIsScheduled(p.id)?' · Scheduled':''}</div><div class="saved-panel-papers">${panelPaperRecords(p).map(pp=>`<div class="saved-panel-paper"><b>${esc(pp.title)}</b><div class="saved-panel-speakers">${esc(pp.people)}</div></div>`).join('')}</div></div><div class="saved-panel-actions"><button class="mini" type="button" data-edit-panel="${esc(p.id)}">Edit</button><button class="mini danger-lite" type="button" data-dissolve-panel="${esc(p.id)}">Dissolve panel</button></div></div>`).join('');
   document.querySelectorAll('[data-saved-panel-title]').forEach(inp=>inp.onchange=()=>{let p=builtPanels.find(x=>x.id===inp.dataset.savedPanelTitle);if(!p)return;pushUndo(`Changed ${p.draftRef} title.`);p.title=inp.value.trim()||p.draftRef;p.topicText=[p.title,...panelPaperRecords(p).map(x=>x.title)].join(' ').toLowerCase();renderSavedPanels();renderBoard();renderTray('panels')});
   document.querySelectorAll('[data-edit-panel]').forEach(b=>b.onclick=()=>editSavedPanel(b.dataset.editPanel));
   document.querySelectorAll('[data-dissolve-panel]').forEach(b=>b.onclick=()=>dissolvePanel(b.dataset.dissolvePanel))
@@ -2684,7 +2686,8 @@ function candidatePanelSlots(panel,duties){
       let rt=timelineForMainDay(di).find(x=>x.kind==='panel'&&x.row&&x.row.id===row.id);if(!rt||rt.end>PANEL_LATEST_END)continue;
       for(let {room} of conferenceRooms()){
         let key=`${di}|${row.id}|${room}`;if(placed[key])continue;
-        let score=smartPlacementScore(panel,di,row,room,duties);if(score<100000)slots.push({key,score,day:di,start:rt.start});
+        let occupied=conferenceRooms().filter(({room:r})=>placed[`${di}|${row.id}|${r}`]).length;
+        let rawScore=smartPlacementScore(panel,di,row,room,duties);if(rawScore<100000)slots.push({key,score:rawScore-occupied*1000,day:di,start:rt.start});
       }
     }
   }
@@ -2719,7 +2722,7 @@ function renderPublicProgramme(){
         let key=favKey('panel',p.id),text=[p.title,room,...panelPaperRecords(p).map(pp=>pp.title+' '+pp.people)].join(' ').toLowerCase();
         return (!favoriteMode||favourites.has(key))&&(!q||text.includes(q))
       });
-      if(panels.length)rows.push(`<div class="public-event-row"><div class="public-time">${time}</div><div class="publicparallel">${panels.map(({p,room})=>{let key=favKey('panel',p.id);return `<div class="public-event-card panelpublic" style="background:${eventColour('panel')}"><div class="card-topline"><div class="event-type">${esc(panelNumbers[p.id]||p.draftRef||'PANEL')}</div>${favButton(key)}</div><b>${esc(p.title===p.draftRef?'Title to be confirmed':p.title)}</b><div class="room">${esc(room)}</div><div class="public-paper-list">${panelPaperRecords(p).map(pp=>`<div class="public-paper"><b>${esc(pp.title)}</b><br><span>${esc(pp.people)}</span></div>`).join('')}</div></div>`}).join('')}</div></div>`)
+      if(panels.length)rows.push(`<div class="public-event-row"><div class="public-time">${time}</div><div class="publicparallel">${panels.map(({p,room})=>{let key=favKey('panel',p.id);return `<div class="public-event-card panelpublic" data-panel-id="${esc(p.id)}" style="background:${eventColour('panel')}"><div class="card-topline"><div class="event-type">${esc(panelNumbers[p.id]||p.draftRef||'PANEL')}</div>${favButton(key)}</div><b>${esc(p.title===p.draftRef?'Title to be confirmed':p.title)}</b><div class="room">${esc(room)}</div><div class="public-paper-list">${panelPaperRecords(p).map(pp=>`<div class="public-paper"><b>${esc(pp.title)}</b><br><span>${esc(pp.people)}</span></div>`).join('')}</div></div>`}).join('')}</div></div>`)
     }else{
       let key=favKey(e.kind,e.id),text=[e.title,e.type,e.place,(e.overlays||[]).map(x=>x.title).join(' ')].join(' ').toLowerCase();
       if((favoriteMode&&!favourites.has(key))||(q&&!text.includes(q)))return;
@@ -3780,7 +3783,7 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
   function decoratePublicPapers(){
     ensurePaperSummaries();
     document.querySelectorAll('#publicProgramme .panelpublic').forEach(card=>{
-      const title=card.querySelector(':scope > b')?.textContent.trim(),panel=builtPanels.find(p=>(p.title===p.draftRef?'Title to be confirmed':p.title)===title);if(!panel)return;
+      const title=card.querySelector(':scope > b')?.textContent.trim(),panel=builtPanels.find(p=>p.id===card.dataset.panelId)||builtPanels.find(p=>(p.title===p.draftRef?'Title to be confirmed':p.title)===title);if(!panel)return;
       const records=panelPaperRecords(panel);
       card.querySelectorAll('.public-paper').forEach((el,i)=>{const p=records[i];if(!p||el.querySelector('.paper-short-summary'))return;const summary=generatedPaperSummary(p),people=el.querySelector('span');if(summary){const para=document.createElement('p');para.className='paper-short-summary';para.textContent=summary;(people||el.lastChild).before(para)}if(p.abstract){const a=document.createElement('a');a.href='#full-abstract-'+p.id;a.className='full-abstract-link';a.textContent='Read full abstract';a.onclick=e=>{e.preventDefault();const d=ensureAbstractDialog();d.querySelector('#paperAbstractTitle').textContent=p.title||'Full abstract';d.querySelector('#paperAbstractPeople').textContent=p.people||'';d.querySelector('#paperAbstractBody').textContent=p.abstract;d.showModal()};el.appendChild(a)}});
     });
@@ -3825,10 +3828,46 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
     let pool=papers.filter(p=>!p.assigned&&!selected.has(p.id));if(pool.length<2){alert(pool.length?'Only one unassigned paper is available. It has been left for manual placement.':'There are no unassigned papers available for automatic panel creation.');return}
     if(!confirm(`Create editable draft panels from ${pool.length} unassigned papers? Existing panels and papers in the current draft will not change.`))return;
     pushUndo('Created draft panels from keywords');let made=0;
-    while(pool.length>=2){const target=pool.length===4?2:Math.min(3,pool.length),group=[pool.shift()];while(group.length<target){let best=0,bestScore=-1;pool.forEach((candidate,i)=>{const score=group.reduce((sum,p)=>sum+keywordOverlap(candidate,p),0);if(score>bestScore){best=i;bestScore=score}});group.push(pool.splice(best,1)[0])}const draft='Draft Panel '+String(draftSeq++).padStart(2,'0');group.forEach(p=>p.assigned=draft);builtPanels.push({id:'auto-'+Date.now()+'-'+made,draftRef:draft,title:automaticPanelTitle(group),papers:group.map(p=>p.id),speakers:group.flatMap(p=>p.speaker_tokens||[]),chair:null,intro:'',topicText:group.flatMap(p=>paperKeywords(p)).join(' '),autoGenerated:true});made++}
-    restoreAssignments();renderPapers();renderBuildPapers();renderSuggestions();renderSavedPanels();counts();if(typeof v78SyncCounts==='function')v78SyncCounts();alert(`${made} editable draft panel${made===1?'':'s'} created from keywords.${pool.length?' One paper remains unassigned for manual placement.':''}`)
+    while(pool.length>=3){const target=3,group=[pool.shift()];while(group.length<target){let best=0,bestScore=-1;pool.forEach((candidate,i)=>{const score=group.reduce((sum,p)=>sum+keywordOverlap(candidate,p),0);if(score>bestScore){best=i;bestScore=score}});group.push(pool.splice(best,1)[0])}const draft='Draft Panel '+String(draftSeq++).padStart(2,'0');group.forEach(p=>p.assigned=draft);builtPanels.push({id:'auto-'+Date.now()+'-'+made,draftRef:draft,title:automaticPanelTitle(group),papers:group.map(p=>p.id),speakers:group.flatMap(p=>p.speaker_tokens||[]),chair:null,intro:'',topicText:group.flatMap(p=>paperKeywords(p)).join(' '),autoGenerated:true});made++}
+    restoreAssignments();renderPapers();renderBuildPapers();renderSuggestions();renderSavedPanels();counts();if(typeof v78SyncCounts==='function')v78SyncCounts();alert(`${made} full three-paper draft panel${made===1?'':'s'} created from keywords.${pool.length?` ${pool.length} paper${pool.length===1?' remains':'s remain'} unassigned for manual placement.`:''}`)
   }
   document.getElementById('createKeywordPanels')?.addEventListener('click',createPanelsFromKeywords);
+  function nextFreeFlexTime(day,duration){
+    const existing=flexEvents(day).filter(e=>e.start&&e.end).map(e=>[mins(e.start),mins(e.end)]).sort((a,b)=>a[0]-b[0]);
+    let start=9*60;for(const [a,b] of existing){if(start+duration<=a)break;if(start<b)start=b}return [start,start+duration]
+  }
+  function automaticallyPlaceEvent(ev,mainDays,postDays){
+    const duration=+(ev.duration||ev.defaultDuration||60);ev.duration=duration;
+    if(ev.id==='jdh'){
+      const pre=days.findIndex(d=>d.type==='pre');if(pre>=0){let [s,e]=nextFreeFlexTime(pre,duration);addFlexEvent(pre,ev,fmt(s),fmt(e));return true}
+    }
+    if(ev.type==='tour'&&postDays.length){let day=postDays[0],[s,e]=nextFreeFlexTime(day,duration);addFlexEvent(day,ev,fmt(s),fmt(e));return true}
+    let preferred=[...mainDays];
+    if(ev.id==='welcome'&&mainDays.length)preferred=[mainDays[0],...mainDays.slice(1)];
+    preferred.sort((a,b)=>Object.keys(placed).filter(k=>k.startsWith(a+'|EVENT|')).length-Object.keys(placed).filter(k=>k.startsWith(b+'|EVENT|')).length);
+    for(const day of preferred){
+      const rows=mainFrameworkForDay(day),boundary=(isOUP(ev)||isGala(ev)||ev.type==='social'||ev.type==='tour');
+      const positions=boundary?[rows.length,0]:rows.map((_,i)=>i).concat(rows.length);
+      for(const pos of positions){
+        const at=eventsAtPosition(day,pos),cluster=at.length?Math.max(...at.map(x=>x.cluster||1))+1:1;
+        ev.cluster=cluster;const key=`${day}|EVENT|${pos}|${cluster}|${ev.id}`;placed[key]=ev;
+        if(!panelOverrun(day))return true;delete placed[key]
+      }
+    }
+    const pre=days.findIndex(d=>d.type==='pre');
+    if(pre>=0&&!isCoreConferenceEvent(ev)){let [s,e]=nextFreeFlexTime(pre,duration);addFlexEvent(pre,ev,fmt(s),fmt(e));return true}
+    return false
+  }
+  document.getElementById('autoPlaceAll')?.addEventListener('click',()=>{
+    const before=new Set(Object.values(placed).map(x=>x.id));pushUndo('Assigned all panels and events automatically.');
+    autoPlace.onclick();
+    const mainDays=days.map((d,i)=>d.type==='main'?i:-1).filter(i=>i>=0),postDays=days.map((d,i)=>d.type==='post'?i:-1).filter(i=>i>=0);
+    const remaining=otherEvents.filter(e=>e.active===true&&!Object.values(placed).some(x=>x.id===e.id)),placedEvents=[],unplacedEvents=[];
+    remaining.forEach(ev=>(automaticallyPlaceEvent(ev,mainDays,postDays)?placedEvents:unplacedEvents).push(ev));
+    const newlyPlaced=[...new Set(Object.values(placed).map(x=>x.id).filter(id=>!before.has(id)))];
+    autosummary.style.display='block';autosummary.innerHTML=`<b>Automatic assignment complete.</b><br>${newlyPlaced.filter(id=>inventoryPanels().some(p=>p.id===id)).length} panel${newlyPlaced.filter(id=>inventoryPanels().some(p=>p.id===id)).length===1?'':'s'} and ${placedEvents.length} event${placedEvents.length===1?'':'s'} assigned.${unplacedEvents.length?` <b>${unplacedEvents.length} event${unplacedEvents.length===1?' could':'s could'} not be placed safely.</b>`:' All active events now fit.'}<br><span class="small">Panel times are filled to room capacity before another session is opened. Events follow their known day, exclusivity and finish-time rules. Everything remains editable.</span>${unplacedEvents.length?`<br><span class="small">Still to place: ${unplacedEvents.map(e=>esc(e.title)).join(' · ')}</span>`:''}<br><button id="undoauto" class="mini" style="margin-top:6px">Undo automatic assignment</button>`;
+    renderBoard();renderTray();document.getElementById('undoauto').onclick=()=>{newlyPlaced.forEach(removePlacement);autosummary.style.display='none';renderBoard();renderTray()}
+  });
   const baseSavedPanels=renderSavedPanels;renderSavedPanels=function(){baseSavedPanels();document.querySelectorAll('#savedPanelsList .saved-panel-row').forEach((row,i)=>{const p=builtPanels[i],ref=row.querySelector('.draftref');if(p&&p.autoGenerated&&ref&&!ref.querySelector('.auto-panel-badge'))ref.insertAdjacentHTML('beforeend','<span class="auto-panel-badge">KEYWORD DRAFT</span>')})};
   refreshChairOptions=function(){const dl=document.getElementById('chairPeopleOptions');if(!dl)return;dl.innerHTML=peopleIndex.filter(p=>p.academicCommittee&&String(p.name||'').trim()).sort((a,b)=>personDisplayName(a).localeCompare(personDisplayName(b))).map(p=>`<option value="${esc(personDisplayName(p))}">${esc([p.function,p.role].filter(Boolean).join(' · '))}</option>`).join('')};
   const savePanelWithCommitteeChair=savepanel.onclick;savepanel.onclick=function(e){const entered=chair.value.trim();if(entered){const key=normalPersonKey(entered),member=peopleIndex.find(p=>p.academicCommittee&&normalPersonKey(personDisplayName(p))===key);if(!member){saveresult.textContent='Choose the panel Chair from the Academic Committee. Add the person to the Academic Committee on the People page first.';chair.focus();return}chair.value=personDisplayName(member)}return savePanelWithCommitteeChair.call(this,e)};
