@@ -2696,13 +2696,19 @@ function candidatePanelSlots(panel,duties){
   }
   return slots.sort((a,b)=>a.score-b.score||a.day-b.day||a.start-b.start);
 }
+function enforceAutomaticPanelCutoff(){
+  const late=[];Object.entries(placed).forEach(([key,p])=>{const bits=key.split('|');if(bits.length!==3||!p||p.kind==='event')return;const rt=timelineForMainDay(+bits[0]).find(x=>x.kind==='panel'&&x.row&&x.row.id===bits[1]);if(rt&&rt.end>PANEL_LATEST_END){late.push(p);delete placed[key]}});
+  const moved=[],unplaced=[];let duties=scheduledDuties();
+  [...new Map(late.map(p=>[p.id,p])).values()].forEach(panel=>{const slot=candidatePanelSlots(panel,duties)[0];if(slot){placed[slot.key]=panel;moved.push(panel);duties=scheduledDuties()}else unplaced.push(panel)});
+  return {moved,unplaced}
+}
 autoPlace.onclick=()=>{
   let repaired=[];Object.entries(placed).forEach(([key,p])=>{let bits=key.split('|');if(bits.length!==3||!p||p.kind==='event')return;let rt=timelineForMainDay(+bits[0]).find(x=>x.kind==='panel'&&x.row&&x.row.id===bits[1]);if(rt&&rt.end>PANEL_LATEST_END){repaired.push([key,p]);delete placed[key]}});
   let placedIds=new Set(Object.values(placed).map(x=>x.id)),remaining=inventoryPanels().filter(p=>!placedIds.has(p.id)),added=[];
   // Harder panels first: people with more existing duties get first choice of slots.
   let duties=scheduledDuties();remaining.sort((a,b)=>schedulingNames(b).reduce((n,x)=>n+duties.filter(d=>d.names.includes(x)).length,0)-schedulingNames(a).reduce((n,x)=>n+duties.filter(d=>d.names.includes(x)).length,0));
   for(let panel of remaining){let slots=candidatePanelSlots(panel,duties);if(!slots.length)continue;let chosen=slots[0];placed[chosen.key]=panel;added.push(panel.id);duties=scheduledDuties()}
-  let unplaced=remaining.filter(p=>!added.includes(p.id));
+  const cutoffRepair=enforceAutomaticPanelCutoff();cutoffRepair.moved.forEach(p=>{if(!added.includes(p.id))added.push(p.id)});let unplaced=[...new Map([...remaining.filter(p=>!added.includes(p.id)),...cutoffRepair.unplaced].map(p=>[p.id,p])).values()];
   autosummary.style.display='block';autosummary.innerHTML=`<b>Smart automatic placement complete.</b><br>${added.length} panel${added.length===1?'':'s'} placed.${repaired.length?` ${repaired.length} late panel placement${repaired.length===1?' was':'s were'} moved back before the 18:30 cut-off.`:''} ${unplaced.length?`<b>${unplaced.length} could not be placed without breaking a hard constraint.</b>`:'All unassigned panels now fit.'}<br><span class="small">Conference Maker fills the available rooms in each session, uses other conference days when needed, avoids participant conflicts and enforces the 18:30 panel finish. You can move anything afterwards.</span>${unplaced.length?`<br><span class="small">Unplaced: ${unplaced.map(p=>esc(p.title||p.draftRef)).join(' · ')}</span>`:''}<br><button id="undoauto" class="mini" style="margin-top:6px">Undo automatic placement</button>`;
   renderBoard();renderTray();document.getElementById('undoauto').onclick=()=>{for(let k of Object.keys(placed))if(placed[k]&&added.includes(placed[k].id))delete placed[k];repaired.forEach(([k,p])=>placed[k]=p);autosummary.style.display='none';renderBoard();renderTray()}
 }
@@ -3844,10 +3850,9 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
   }
   function automaticallyPlaceEvent(ev,mainDays,postDays){
     const duration=+(ev.duration||ev.defaultDuration||60);ev.duration=duration;
-    if(ev.id==='jdh'){
+    if(ev.id==='jdh'||ev.type==='tour'||ev.id==='explorations-workshop'||ev.id==='meeting'){
       const pre=days.findIndex(d=>d.type==='pre');if(pre>=0){let [s,e]=nextFreeFlexTime(pre,duration);addFlexEvent(pre,ev,fmt(s),fmt(e));return true}
     }
-    if(ev.type==='tour'&&postDays.length){let day=postDays[0],[s,e]=nextFreeFlexTime(day,duration);addFlexEvent(day,ev,fmt(s),fmt(e));return true}
     const dayOneOnly=ev.id==='welcome'||ev.id==='registration';let preferred=dayOneOnly&&mainDays.length?[mainDays[0]]:[...mainDays];
     if(!dayOneOnly)preferred.sort((a,b)=>Object.keys(placed).filter(k=>k.startsWith(a+'|EVENT|')).length-Object.keys(placed).filter(k=>k.startsWith(b+'|EVENT|')).length);
     for(const day of preferred){
@@ -3872,8 +3877,9 @@ renderSetupTeamSlots();renderPeople();renderConferenceInformation();renderPublic
     const mainDays=days.map((d,i)=>d.type==='main'?i:-1).filter(i=>i>=0),postDays=days.map((d,i)=>d.type==='post'?i:-1).filter(i=>i>=0);
     const eventPriority=e=>e.id==='welcome'?0:e.id==='registration'?1:2,remaining=otherEvents.filter(e=>e.active===true&&!e.nonTemporal&&!Object.values(placed).some(x=>x.id===e.id)).sort((a,b)=>eventPriority(a)-eventPriority(b)),placedEvents=[],unplacedEvents=[];
     remaining.forEach(ev=>(automaticallyPlaceEvent(ev,mainDays,postDays)?placedEvents:unplacedEvents).push(ev));
+    const finalPanelCheck=enforceAutomaticPanelCutoff();
     const newlyPlaced=[...new Set(Object.values(placed).map(x=>x.id).filter(id=>!before.has(id)))];
-    autosummary.style.display='block';autosummary.innerHTML=`<b>Automatic assignment complete.</b><br>${newlyPlaced.filter(id=>inventoryPanels().some(p=>p.id===id)).length} panel${newlyPlaced.filter(id=>inventoryPanels().some(p=>p.id===id)).length===1?'':'s'} and ${placedEvents.length} event${placedEvents.length===1?'':'s'} assigned.${unplacedEvents.length?`<div class="warningbox" style="margin-top:8px"><b>${unplacedEvents.length} event${unplacedEvents.length===1?' could':'s could'} not be scheduled within the current parameters.</b><br>${unplacedEvents.map(e=>esc(e.title)).join(' · ')}<br><span class="small">Add these manually or adjust the programme.</span></div>`:' All active events now fit.'}<br><span class="small">Automatic scheduling starts at 09:00, prefers early afternoon for the DHS AGM, fills panel rooms before opening another session, and observes the 18:30 panel and 22:30 evening limits. Earlier starts can still be added manually.</span><br><button id="undoauto" class="mini" style="margin-top:6px">Undo automatic assignment</button>`;
+    autosummary.style.display='block';autosummary.innerHTML=`<b>Automatic assignment complete.</b><br>${newlyPlaced.filter(id=>inventoryPanels().some(p=>p.id===id)).length} panel${newlyPlaced.filter(id=>inventoryPanels().some(p=>p.id===id)).length===1?'':'s'} and ${placedEvents.length} event${placedEvents.length===1?'':'s'} assigned.${unplacedEvents.length||finalPanelCheck.unplaced.length?`<div class="warningbox" style="margin-top:8px"><b>${unplacedEvents.length+finalPanelCheck.unplaced.length} item${unplacedEvents.length+finalPanelCheck.unplaced.length===1?' could':'s could'} not be scheduled within the current parameters.</b><br>${[...unplacedEvents,...finalPanelCheck.unplaced].map(e=>esc(e.title||e.draftRef)).join(' · ')}<br><span class="small">These remain unplaced. Add them manually or adjust the programme.</span></div>`:' All active events and panels now fit.'}<br><span class="small">A final timetable-wide check removes every panel finishing after 18:30 and reschedules it earlier or leaves it unplaced. Automatic scheduling starts at 09:00 and the evening programme ends at 22:30.</span><br><button id="undoauto" class="mini" style="margin-top:6px">Undo automatic assignment</button>`;
     renderBoard();renderTray();document.getElementById('undoauto').onclick=()=>{newlyPlaced.forEach(removePlacement);displacedEvents.forEach(([k,item])=>placed[k]=item);autosummary.style.display='none';renderBoard();renderTray()}
   });
   const baseSavedPanels=renderSavedPanels;renderSavedPanels=function(){baseSavedPanels();document.querySelectorAll('#savedPanelsList .saved-panel-row').forEach((row,i)=>{const p=builtPanels[i],ref=row.querySelector('.draftref');if(p&&p.autoGenerated&&ref&&!ref.querySelector('.auto-panel-badge'))ref.insertAdjacentHTML('beforeend','<span class="auto-panel-badge">KEYWORD DRAFT</span>')})};
